@@ -27,7 +27,7 @@
     }
     .logo { font-size: 1.5rem; font-weight: bold; color: #00e676; }
 
-    /* Account Profile & Dropdown */
+    /* User Profile Dropdown */
     .user-profile-container {
       position: relative;
     }
@@ -84,6 +84,7 @@
     .dropdown-item.danger { color: #ff5252; }
     .dropdown-item.danger:hover { background-color: #3d1c1c; }
 
+    /* Library Layout */
     main { padding: 2rem; }
     #loading-games-msg {
       text-align: center;
@@ -137,6 +138,54 @@
       text-overflow: ellipsis;
     }
     .game-card p { font-size: 0.8rem; color: #888; }
+
+    /* Game Modal Overlay */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: #1e1e1e;
+      width: 90%;
+      max-width: 900px;
+      border-radius: 12px;
+      border: 1px solid #333;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-header {
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #2a2a2a;
+      border-bottom: 1px solid #333;
+    }
+    .modal-title { font-size: 1.1rem; color: #00e676; font-weight: bold; }
+    .close-btn {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    .close-btn:hover { color: #ff5252; }
+    .emulator-body {
+      width: 100%;
+      height: 550px;
+      background-color: #000;
+      position: relative;
+    }
+    #emulator { width: 100%; height: 100%; }
   </style>
 </head>
 <body>
@@ -144,7 +193,7 @@
   <header>
     <div class="logo">🎮 RetroHub</div>
 
-    <!-- Account Dropdown Section -->
+    <!-- Account Profile Section -->
     <div class="user-profile-container">
       <div class="user-btn" id="userBtn" onclick="toggleProfileDropdown()">
         <div class="user-avatar" id="userAvatar">G</div>
@@ -169,50 +218,74 @@
     </div>
   </main>
 
+  <!-- Game Modal -->
+  <div class="modal-overlay" id="game-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-game-title">Game Title</div>
+        <button class="close-btn" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="emulator-body" id="emulator-container">
+        <div id="emulator"></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     const GITHUB_USERNAME = 'absa232';
     const GITHUB_REPO = 'retrohub';
 
     const SYSTEM_MAP = {
-      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', name: 'SEGA MEGADRIVE', emoji: '🌀' },
-      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', name: 'SUPER NINTENDO', emoji: '🎮' },
-      'gba': { system: 'Nintendo_-_Game_Boy_Advance', name: 'GAME BOY ADVANCE', emoji: '🕹️' },
-      'n64': { system: 'Nintendo_-_Nintendo_64', name: 'NINTENDO 64', emoji: '🏰' }
+      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'segaMD', name: 'SEGA MEGADRIVE', emoji: '🌀' },
+      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes', name: 'SUPER NINTENDO', emoji: '🎮' },
+      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'gba', name: 'GAME BOY ADVANCE', emoji: '🕹️' },
+      'n64': { system: 'Nintendo_-_Nintendo_64', core: 'n64', name: 'NINTENDO 64', emoji: '🏰' }
     };
 
-    // Account Dropdown Handlers
+    // User Dropdown Handlers
     function toggleProfileDropdown() {
       const dropdown = document.getElementById('profileDropdown');
-      dropdown.classList.toggle('show');
+      if (dropdown) dropdown.classList.toggle('show');
     }
 
     window.addEventListener('click', function(e) {
       const container = document.querySelector('.user-profile-container');
       if (container && !container.contains(e.target)) {
-        document.getElementById('profileDropdown').classList.remove('show');
+        const dropdown = document.getElementById('profileDropdown');
+        if (dropdown) dropdown.classList.remove('show');
       }
     });
 
     function changeAccount() {
-      alert("Redirecting to Google account selector...");
-      // Your Firebase account switch logic goes here
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        firebase.auth().signInWithRedirect(provider);
+      } else {
+        alert("Redirecting to account selector...");
+      }
     }
 
     function logout() {
-      alert("Logging out...");
-      // Your Firebase logout logic goes here
+      if (typeof firebase !== 'undefined' && firebase.auth) {
+        firebase.auth().signOut().then(() => location.reload());
+      } else {
+        alert("Logging out...");
+      }
     }
 
-    // Direct GitHub Scanner Fix
+    // GitHub Arcade Directory Scanner
     async function fetchArcadeLibrary() {
       const container = document.getElementById('games-container');
+      if (!container) return;
+
       const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms`;
 
       try {
         const response = await fetch(apiUrl);
         if (!response.ok) {
           if (response.status === 403) {
-            throw new Error("GitHub API limit reached. Please try again in a few minutes.");
+            throw new Error("GitHub API rate limit reached. Please wait a few minutes and refresh.");
           }
           throw new Error(`Could not access 'roms' directory (${response.status}).`);
         }
@@ -227,18 +300,17 @@
             const systemKey = folder.name.toLowerCase();
             const systemData = SYSTEM_MAP[systemKey] || { 
               system: null,
+              core: systemKey,
               name: folder.name.toUpperCase(), 
               emoji: '🎮' 
             };
 
-            // Fetch contents inside system folder safely
             const subfolderUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms/${folder.name}`;
             const gamesResponse = await fetch(subfolderUrl);
             if (!gamesResponse.ok) continue;
 
             const files = await gamesResponse.json();
 
-            // Filter supported ROM extensions
             const romFiles = files.filter(f => 
               f.type === 'file' && (
                 f.name.endsWith('.zip') || 
@@ -270,7 +342,7 @@
                 const gameTitle = file.name.replace(/\.[^/.]+$/, "");
                 const romPath = `roms/${folder.name}/${file.name}`;
                 
-                // Fix: Escape single quotes and quotes to avoid breaking onclick attributes
+                // Escape single/double quotes so games with apostrophes like Buster's work properly
                 const safeTitle = gameTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const safeRomPath = romPath.replace(/'/g, "\\'");
 
@@ -295,7 +367,7 @@
         }
 
         if (totalGamesFound === 0) {
-          container.innerHTML = `<div id="loading-games-msg">No game files found in your 'roms' folder.</div>`;
+          container.innerHTML = `<div id="loading-games-msg">No supported ROM files found inside your 'roms' folder.</div>`;
         }
 
       } catch (err) {
@@ -304,8 +376,38 @@
       }
     }
 
-    function launchGame(system, romPath, title) {
-      alert(`Launching ${title} (${system})`);
+    // Launch game into modal window
+    function launchGame(systemKey, romPath, title) {
+      const modal = document.getElementById('game-modal');
+      const gameTitleElem = document.getElementById('modal-game-title');
+      const playerContainer = document.getElementById('emulator-container');
+
+      if (!modal || !playerContainer) return;
+
+      if (gameTitleElem) gameTitleElem.textContent = title;
+
+      modal.style.display = 'flex';
+      playerContainer.innerHTML = '<div id="emulator"></div>';
+
+      const systemInfo = SYSTEM_MAP[systemKey] || { core: systemKey };
+
+      window.EJS_player = '#emulator';
+      window.EJS_gameUrl = romPath;
+      window.EJS_core = systemInfo.core;
+      window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+
+      const ejsScript = document.createElement('script');
+      ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+      document.body.appendChild(ejsScript);
+    }
+
+    // Close game modal
+    function closeModal() {
+      const modal = document.getElementById('game-modal');
+      const playerContainer = document.getElementById('emulator-container');
+
+      if (modal) modal.style.display = 'none';
+      if (playerContainer) playerContainer.innerHTML = '';
     }
 
     window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
