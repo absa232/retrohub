@@ -333,7 +333,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, doc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // YOUR EXPLICIT FIREBASE CONFIG
     const firebaseConfig = {
@@ -352,11 +352,11 @@
 
     provider.setCustomParameters({ prompt: 'select_account' });
 
-    let currentUser = null;
-    let currentGameTitle = "";
+    window.currentUser = null;
+    window.currentGameTitle = "";
 
     function updateUserUI(user) {
-      currentUser = user || null;
+      window.currentUser = user || null;
       document.getElementById('landing-screen').classList.add('hidden');
       document.getElementById('user-greeting').innerText = user
         ? `Welcome back! Pick a game and let's play together!`
@@ -413,12 +413,79 @@
     window.auth = auth;
     window.provider = provider;
 
+    // Initialize IndexedDB for instant local save caching
+    const dbName = 'ArcadeSaves';
+    const storeName = 'saves';
+    let localDB = null;
+
+    const initIndexedDB = () => {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(dbName, 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          localDB = request.result;
+          resolve(localDB);
+        };
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, { keyPath: 'id' });
+          }
+        };
+      });
+    };
+
+    const saveToIndexedDB = async (gameTitle, saveBlob) => {
+      if (!localDB) await initIndexedDB();
+      return new Promise((resolve, reject) => {
+        const tx = localDB.transaction(storeName, 'readwrite');
+        const store = tx.objectStore(storeName);
+        store.put({
+          id: gameTitle,
+          blob: saveBlob,
+          timestamp: Date.now()
+        });
+        tx.onerror = () => reject(tx.error);
+        tx.oncomplete = () => resolve(true);
+      });
+    };
+
+    const loadFromIndexedDB = async (gameTitle) => {
+      if (!localDB) await initIndexedDB();
+      return new Promise((resolve, reject) => {
+        const tx = localDB.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const request = store.get(gameTitle);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result?.blob || null);
+      });
+    };
+
+    // Initialize IndexedDB on page load
+    initIndexedDB().catch(err => console.warn('IndexedDB init failed:', err));
+
     const blobToBase64 = (blob) => {
       return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => resolve(reader.result.split(',')[1]);
         reader.readAsDataURL(blob);
       });
+    };
+
+    const normalizeSavePayload = (input) => {
+      if (input == null) return null;
+      if (input instanceof Blob) return input;
+      if (input instanceof ArrayBuffer) return new Blob([input], { type: 'application/octet-stream' });
+      if (ArrayBuffer.isView(input)) return new Blob([input.buffer], { type: 'application/octet-stream' });
+      if (typeof input === 'string') return new Blob([input], { type: 'text/plain' });
+      if (typeof input === 'object') {
+        if (input.state !== undefined) return normalizeSavePayload(input.state);
+        if (input.blob !== undefined) return normalizeSavePayload(input.blob);
+        if (input.data !== undefined) return normalizeSavePayload(input.data);
+        if (input.file !== undefined) return normalizeSavePayload(input.file);
+        return new Blob([JSON.stringify(input)], { type: 'application/json' });
+      }
+      return new Blob([String(input)], { type: 'text/plain' });
     };
 
     const base64ToBlob = (base64) => {
@@ -430,36 +497,135 @@
       return new Blob([new Uint8Array(byteNumbers)], { type: 'application/octet-stream' });
     };
 
-    window.syncSaveToCloud = async function(saveBlob) {
-      if (!currentUser || !currentGameTitle) return;
+    window.syncSaveToCloud = async function(saveInput) {
+      console.log('SYNC_SAVE_START', { currentUser: !!window.currentUser, currentGameTitle: window.currentGameTitle, uid: window.currentUser?.uid });
+      
+      if (!window.currentUser) {
+        console.error('SYNC_FAILED: currentUser is null or undefined');
+        return;
+      }
+      if (!window.currentGameTitle) {
+        console.error('SYNC_FAILED: currentGameTitle is null or undefined');
+        return;
+      }
+      
       try {
-        const base64Data = await blobToBase64(saveBlob);
-        const userDocRef = doc(db, "saves", currentUser.uid);
+        console.log('NORMALIZING_PAYLOAD', typeof saveInput, saveInput instanceof Uint8Array ? 'Uint8Array' : typeof saveInput);
+        const saveBlob = normalizeSavePayload(saveInput);
+        console.log('PAYLOAD_NORMALIZED', !!saveBlob, saveBlob?.type, saveBlob?.size);
         
-        await setDoc(userDocRef, {
-          [currentGameTitle]: base64Data
+        if (!saveBlob) {
+          console.warn('No valid save payload to sync.');
+          return;
+        }
+        
+        // INSTANT: Save to IndexedDB immediately
+        console.log('SAVING_TO_INDEXEDDB');
+        await saveToIndexedDB(window.currentGameTitle, saveBlob);
+        console.log('LOCAL_SAVE_COMPLETE - Data is safe locally!');
+        
+        // BACKGROUND: Sync to Firestore async (don't wait for user)
+        syncToFirestoreAsync(window.currentGameTitle, saveBlob).catch(err => {
+          console.error('Background Firestore sync failed:', err);
+        });
+        
+      } catch (err) {
+        console.error("Local save failed:", err);
+      }
+    };
+
+    // Background Firestore sync (don't block user)
+    const syncToFirestoreAsync = async (gameTitle, saveBlob) => {
+      try {
+        console.log('FIRESTORE_SYNC_STARTING_BACKGROUND');
+        const base64Data = await blobToBase64(saveBlob);
+        
+        // Split into 800KB chunks
+        const CHUNK_SIZE = 800000;
+        const chunks = [];
+        for (let i = 0; i < base64Data.length; i += CHUNK_SIZE) {
+          chunks.push(base64Data.substring(i, i + CHUNK_SIZE));
+        }
+        
+        console.log('DATA_CHUNKED', { totalChunks: chunks.length });
+        
+        // Batch write
+        const batch = writeBatch(db);
+        const timestamp = Date.now();
+        
+        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', gameTitle);
+        batch.set(metadataRef, {
+          timestamp: timestamp,
+          chunkCount: chunks.length,
+          totalSize: base64Data.length,
+          lastUpdated: new Date().toISOString()
         }, { merge: true });
         
-        console.log("Cloud save synced to Firestore!");
+        for (let i = 0; i < chunks.length; i++) {
+          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${gameTitle}_chunk_${i}`);
+          batch.set(chunkRef, {
+            data: chunks[i],
+            index: i,
+            gameTitle: gameTitle,
+            timestamp: timestamp
+          });
+        }
+        
+        await batch.commit();
+        console.log('FIRESTORE_SYNC_COMPLETE');
       } catch (err) {
-        console.error("Firestore save failed:", err);
+        console.error("Firestore background sync failed:", err.message);
       }
     };
 
     window.loadSaveFromCloud = async function() {
-      if (!currentUser || !currentGameTitle) return null;
+      if (!window.currentUser || !window.currentGameTitle) return null;
+      
       try {
-        const userDocRef = doc(db, "saves", currentUser.uid);
-        const docSnap = await getDoc(userDocRef);
-        
-        if (docSnap.exists() && docSnap.data()[currentGameTitle]) {
-          console.log("Cloud save loaded from Firestore!");
-          const base64Data = docSnap.data()[currentGameTitle];
-          return base64ToBlob(base64Data);
+        // Try IndexedDB first (instant load if available)
+        console.log('Checking IndexedDB for save...');
+        const localSave = await loadFromIndexedDB(window.currentGameTitle);
+        if (localSave) {
+          console.log('Save loaded from IndexedDB (instant)!');
+          return localSave;
         }
-        return null;
+        
+        // Fallback to Firestore
+        console.log('No local save, loading from Firestore...');
+        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
+        const metadataSnap = await getDoc(metadataRef);
+        
+        if (!metadataSnap.exists()) {
+          console.log('No save found for', window.currentGameTitle);
+          return null;
+        }
+        
+        const metadata = metadataSnap.data();
+        const chunkCount = metadata.chunkCount || 1;
+        console.log('Loading save from Firestore with', chunkCount, 'chunks');
+        
+        // Load all chunks
+        let base64Data = '';
+        for (let i = 0; i < chunkCount; i++) {
+          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${window.currentGameTitle}_chunk_${i}`);
+          const chunkSnap = await getDoc(chunkRef);
+          if (chunkSnap.exists()) {
+            base64Data += chunkSnap.data().data;
+          }
+        }
+        
+        if (!base64Data) return null;
+        
+        // Cache it locally for next time
+        const blob = base64ToBlob(base64Data);
+        saveToIndexedDB(window.currentGameTitle, blob).catch(err => {
+          console.warn('Failed to cache save locally:', err);
+        });
+        
+        console.log('Cloud save loaded from Firestore!');
+        return blob;
       } catch (err) {
-        console.error("No Firestore save found or load failed:", err);
+        console.error("Cloud save load failed:", err);
         return null;
       }
     };
@@ -620,6 +786,7 @@
       const mappedCore = SYSTEM_MAP[core]?.core || core;
 
       window.currentGameTitle = title;
+      console.log('LAUNCH_GAME', { title, mappedCore, uid: window.currentUser?.uid });
       document.getElementById('modal-title').innerText = title;
       document.getElementById('player-modal').classList.add('active');
 
@@ -644,16 +811,39 @@
         }
       }
 
-      window.EJS_onSaveState = function(data) {
+      function arcadeSaveHandler(data) {
+        console.log('SAVE CALLBACK FIRED', data);
+        console.log('SAVE CALLBACK KEYS', data && typeof data === 'object' ? Object.keys(data) : 'not-object');
         if (window.syncSaveToCloud) {
-          const blob = new Blob([data.state], { type: 'application/octet-stream' });
-          window.syncSaveToCloud(blob);
+          const savePayload = data && typeof data === 'object' && data.state !== undefined ? data.state : data;
+          window.syncSaveToCloud(savePayload);
         }
+      }
+
+      const bindSaveHandler = () => {
+        if (!window.EJS_emulator || typeof window.EJS_emulator.on !== 'function') {
+          setTimeout(bindSaveHandler, 250);
+          return;
+        }
+
+        console.log('ATTACHING EMULATOR SAVE HANDLER');
+        window.EJS_emulator.off?.('saveState', window.__arcadeSaveHook);
+        window.__arcadeSaveHook = function(data) {
+          arcadeSaveHandler(data);
+        };
+        window.EJS_emulator.on('saveState', window.__arcadeSaveHook);
       };
 
+      window.EJS_onSaveState = arcadeSaveHandler;
       if (window.EJS_emulator) {
         try { window.EJS_emulator.destroy(); } catch (e) { console.warn(e); }
       }
+      bindSaveHandler();
+
+      // The emulator's built-in autosave (EJS_autosave = 1) will trigger saveState callbacks
+      console.log('Emulator auto-save configured: every 60 seconds');
+      console.log('When auto-save triggers, it will call the save handler -> IndexedDB + Firestore');
+      
 
       const existingLoader = document.querySelector('script[src="https://cdn.emulatorjs.org/stable/data/loader.js"]');
       if (existingLoader) {
@@ -664,9 +854,37 @@
       ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
       ejsScript.async = false;
       document.body.appendChild(ejsScript);
+      
+      // Set up auto-save - will start attempting to save after 2 seconds
+      setTimeout(() => {
+        console.log('AUTO_SAVE_SETUP: Starting auto-save interval (60 seconds)');
+        window.currentAutoSaveInterval = setInterval(() => {
+          if (window.currentUser && window.currentGameTitle) {
+            try {
+              // Find and click the Save State button (uses .ejs_menu_button class)
+              const saveBtn = Array.from(document.querySelectorAll('.ejs_menu_button')).find(b => b.innerText === 'Save State');
+              if (saveBtn) {
+                console.log('AUTO_SAVE_TICK: Saving game state for', window.currentGameTitle);
+                saveBtn.click();
+              } else {
+                console.warn('AUTO_SAVE: Save State button not found');
+              }
+            } catch (e) {
+              console.warn('AUTO_SAVE_ERROR:', e.message);
+            }
+          }
+        }, 60000); // 60 seconds (1 minute) as per requirement
+      }, 2000);
     }
 
     function closeGame() {
+      // Stop auto-save when exiting
+      if (window.currentAutoSaveInterval) {
+        clearInterval(window.currentAutoSaveInterval);
+        window.currentAutoSaveInterval = null;
+        console.log('AUTO_SAVE_DISABLED');
+      }
+      
       document.getElementById('player-modal').classList.remove('active');
       if (window.EJS_emulator) {
         try { window.EJS_emulator.destroy(); } catch (e) { console.warn(e); }
