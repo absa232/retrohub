@@ -1,237 +1,449 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RetroHub Arcade</title>
-
-  <!-- Prevent 404 favicon error in console -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Our Arcade 💕</title>
+  
+  <!-- GOOGLE NOTO COLOR EMOJI FONT -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-color: #0f0e17;
+      --card-bg: #1f1e2e;
+      --accent: #ff8ba7;
+      --text: #fffffe;
+      --subtext: #a7a9be;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Noto Color Emoji';
+    }
+
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #121212;
-      color: #ffffff;
+      background-color: var(--bg-color);
+      color: var(--text);
       min-height: 100vh;
     }
 
+    /* --- ROMANTIC LANDING OVERLAY --- */
+    #landing-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #2a0845 0%, #6441a5 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.8s ease, visibility 0.8s;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #landing-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .heart-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+      font-family: 'Noto Color Emoji', sans-serif;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .landing-title {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .landing-subtitle {
+      font-size: 1.1rem;
+      color: #e0e0e0;
+      margin-bottom: 30px;
+      max-width: 400px;
+    }
+
+    .enter-btn {
+      background-color: var(--accent);
+      color: #000;
+      border: none;
+      padding: 14px 32px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 139, 167, 0.4);
+      transition: transform 0.2s, background-color 0.2s;
+    }
+
+    .enter-btn:hover {
+      transform: scale(1.05);
+      background-color: #ff9fb5;
+    }
+
+    /* --- DASHBOARD STYLES --- */
+    .dashboard {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
     header {
+      margin-bottom: 40px;
+      border-bottom: 2px solid var(--card-bg);
+      padding-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 1rem 2rem;
-      background-color: #1e1e1e;
-      border-bottom: 1px solid #333;
     }
-    .logo { font-size: 1.5rem; font-weight: bold; color: #00e676; }
 
-    /* User Profile Dropdown */
-    .user-profile-container {
-      position: relative;
+    .header-info h1 {
+      font-size: 2.2rem;
+      color: var(--accent);
     }
-    .user-btn {
+
+    .header-info p {
+      color: var(--subtext);
+      margin-top: 5px;
+    }
+
+    /* Top-Right Profile Badge */
+    .user-profile {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      background-color: var(--card-bg);
+      padding: 8px 16px;
+      border-radius: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .user-profile.active {
+      display: flex;
+    }
+
+    .user-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      object-fit: cover;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    /* Categories */
+    .category-section {
+      margin-bottom: 50px;
+    }
+
+    .category-title {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
       display: flex;
       align-items: center;
       gap: 10px;
-      background-color: #2a2a2a;
-      padding: 6px 12px;
-      border-radius: 20px;
-      cursor: pointer;
-      border: 1px solid #444;
-      transition: background 0.2s;
-    }
-    .user-btn:hover { background-color: #333; }
-    .user-avatar {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background-color: #00e676;
-      color: #000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-    }
-    .user-name { font-size: 0.9rem; font-weight: 500; }
-
-    .dropdown-menu {
-      display: none;
-      position: absolute;
-      right: 0;
-      top: 45px;
-      background-color: #222;
-      border: 1px solid #444;
-      border-radius: 8px;
-      width: 180px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-      z-index: 100;
-      overflow: hidden;
-    }
-    .dropdown-menu.show { display: block; }
-    .dropdown-item {
-      padding: 10px 15px;
-      font-size: 0.9rem;
-      color: #eee;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: background 0.2s;
-    }
-    .dropdown-item:hover { background-color: #333; }
-    .dropdown-item.danger { color: #ff5252; }
-    .dropdown-item.danger:hover { background-color: #3d1c1c; }
-
-    /* Library Layout */
-    main { padding: 2rem; }
-    #loading-games-msg {
-      text-align: center;
-      font-size: 1.2rem;
-      color: #aaa;
-      margin-top: 3rem;
     }
 
-    .category-section { margin-bottom: 2.5rem; }
-    .category-title {
-      font-size: 1.4rem;
-      color: #00e676;
-      margin-bottom: 1rem;
-      border-bottom: 1px solid #333;
-      padding-bottom: 0.5rem;
+    .category-title::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 20px;
+      background-color: var(--accent);
+      border-radius: 2px;
     }
+
     .games-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 20px;
     }
+
     .game-card {
-      background-color: #1e1e1e;
-      border-radius: 8px;
-      padding: 1rem;
-      text-align: center;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 15px;
       cursor: pointer;
-      transition: transform 0.2s, background-color 0.2s;
-      border: 1px solid #2a2a2a;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      text-align: center;
     }
+
     .game-card:hover {
-      transform: translateY(-4px);
-      background-color: #282828;
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      border-color: var(--accent);
     }
+
     .game-thumb {
       width: 100%;
-      height: 120px;
+      height: 140px;
       background-color: #121212;
-      border-radius: 6px;
+      border-radius: 8px;
+      margin-bottom: 12px;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       font-size: 2.5rem;
-      margin-bottom: 0.8rem;
+      font-family: 'Noto Color Emoji', sans-serif;
+      color: var(--subtext);
+      object-fit: cover;
     }
-    .game-card h3 {
-      font-size: 0.95rem;
-      margin-bottom: 0.3rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .game-card p { font-size: 0.8rem; color: #888; }
 
-    /* Game Modal Overlay */
-    .modal-overlay {
-      display: none;
+    .game-card h3 {
+      font-size: 1.1rem;
+      margin-bottom: 5px;
+    }
+
+    .game-card p {
+      font-size: 0.85rem;
+      color: var(--subtext);
+    }
+
+    /* --- EMULATOR MODAL --- */
+    .modal {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: rgba(0, 0, 0, 0.85);
-      z-index: 1000;
+      display: none;
       align-items: center;
       justify-content: center;
+      z-index: 10000;
+      background-color: rgba(0,0,0,0.75);
     }
+    .modal.active { display: flex; }
+
     .modal-content {
-      background-color: #1e1e1e;
+      background: var(--card-bg);
       width: 90%;
       max-width: 900px;
       border-radius: 12px;
-      border: 1px solid #333;
+      border: 1px solid rgba(255,255,255,0.06);
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
     }
+
     .modal-header {
-      padding: 1rem;
+      padding: 12px 16px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background-color: #2a2a2a;
-      border-bottom: 1px solid #333;
+      background: rgba(0,0,0,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.03);
     }
-    .modal-title { font-size: 1.1rem; color: #00e676; font-weight: bold; }
+
+    .modal-title { font-size: 1.1rem; color: var(--accent); font-weight: 700; }
+
     .close-btn {
       background: none;
       border: none;
-      color: #fff;
-      font-size: 1.5rem;
+      color: var(--text);
+      font-size: 1.4rem;
       cursor: pointer;
     }
-    .close-btn:hover { color: #ff5252; }
+
     .emulator-body {
       width: 100%;
-      height: 550px;
+      height: 560px;
       background-color: #000;
       position: relative;
     }
-    #emulator { width: 100%; height: 100%; }
+
+    #game { width: 100%; height: 100%; }
+    .crt-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background-image: linear-gradient(rgba(0,0,0,0.0), rgba(0,0,0,0.08)), repeating-linear-gradient(transparent, rgba(0,0,0,0.06) 1px, transparent 2px);
+      mix-blend-mode: overlay;
+      opacity: 0.85;
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="logo">🎮 RetroHub</div>
+  <!-- ROMANTIC LANDING SCREEN -->
+  <div id="landing-screen">
+    <div class="heart-icon">🎮💖</div>
+    <h1 class="landing-title">Welcome to Our Retro Hub</h1>
+    <p class="landing-subtitle">I built this small space so we can play through some iconic classics together, no matter how many miles are between us.</p>
+    <button class="enter-btn" onclick="loginAndEnter()">Sign in with Google 💖</button>
+  </div>
 
-    <!-- Account Profile Section -->
-    <div class="user-profile-container">
-      <div class="user-btn" id="userBtn" onclick="toggleProfileDropdown()">
-        <div class="user-avatar" id="userAvatar">G</div>
-        <span class="user-name" id="userName">Google User</span>
-        <span style="font-size: 0.7rem;">▼</span>
+  <!-- MAIN DASHBOARD -->
+  <div class="dashboard">
+    <header>
+      <div class="header-info">
+        <h1>Our Co-Op Corner</h1>
+        <p id="user-greeting">Pick a game and let's play together!</p>
       </div>
 
-      <div class="dropdown-menu" id="profileDropdown">
-        <div class="dropdown-item" onclick="changeAccount()">
-          <span>🔄</span> Change Account
-        </div>
-        <div class="dropdown-item danger" onclick="logout()">
-          <span>🚪</span> Log Out
-        </div>
+      <!-- Profile Badge (Top Right) -->
+      <div id="user-profile" class="user-profile">
+        <img id="user-avatar" class="user-avatar" src="" alt="Profile Picture" />
+        <span id="user-name" class="user-name"></span>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <main>
-    <div id="games-container">
-      <div id="loading-games-msg">Scanning your arcade library...</div>
-    </div>
-  </main>
+    <!-- DYNAMIC GAMES LIBRARY (populated from GitHub 'roms' folder) -->
+    <div id="games-container"></div>
+  </div>
 
-  <!-- Game Modal -->
-  <div class="modal-overlay" id="game-modal">
+  <!-- POPUP EMULATOR PLAYER -->
+  <div id="player-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <div class="modal-title" id="modal-game-title">Game Title</div>
-        <button class="close-btn" onclick="closeModal()">&times;</button>
+        <div class="modal-title" id="modal-title">Loading Game...</div>
+        <button class="close-btn" onclick="closeGame()">✕</button>
       </div>
       <div class="emulator-body" id="emulator-container">
-        <div id="emulator"></div>
+        <div id="game"></div>
+        <div class="crt-overlay"></div>
       </div>
     </div>
   </div>
 
+  <!-- FIREBASE SDKs (Cloud Firestore) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // YOUR EXPLICIT FIREBASE CONFIG
+    const firebaseConfig = {
+      apiKey: "AIzaSyAeS_FJxXZbbakYuOMhF1MI_1P1Ht8EUwA",
+      authDomain: "our-arcade-c417d.firebaseapp.com",
+      projectId: "our-arcade-c417d",
+      storageBucket: "our-arcade-c417d.firebasestorage.app",
+      messagingSenderId: "48063295144",
+      appId: "1:48063295144:web:1bdcb75b600222d8ee5c9d"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    let currentUser = null;
+    let currentGameTitle = "";
+
+    function updateUserUI(user) {
+      if (!user) return;
+      currentUser = user;
+      document.getElementById('landing-screen').classList.add('hidden');
+      document.getElementById('user-greeting').innerText = `Welcome back! Pick a game and let's play together!`;
+      
+      // Update Top-Right Profile Badge
+      document.getElementById('user-name').innerText = user.displayName || 'Player';
+      if (user.photoURL) {
+        document.getElementById('user-avatar').src = user.photoURL;
+      } else {
+        document.getElementById('user-avatar').src = 'https://via.placeholder.com/40';
+      }
+      document.getElementById('user-profile').classList.add('active');
+    }
+
+    window.loginAndEnter = async function() {
+      try {
+        const result = await signInWithPopup(auth, provider);
+        updateUserUI(result.user);
+      } catch (error) {
+        console.error("Authentication failed:", error);
+      }
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        updateUserUI(user);
+      }
+    });
+
+    // Expose auth and provider for non-module scripts (profile dropdown handlers)
+    window.auth = auth;
+    window.provider = provider;
+
+    const blobToBase64 = (blob) => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.readAsDataURL(blob);
+      });
+    };
+
+    const base64ToBlob = (base64) => {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      return new Blob([new Uint8Array(byteNumbers)], { type: 'application/octet-stream' });
+    };
+
+    window.syncSaveToCloud = async function(saveBlob) {
+      if (!currentUser || !currentGameTitle) return;
+      try {
+        const base64Data = await blobToBase64(saveBlob);
+        const userDocRef = doc(db, "saves", currentUser.uid);
+        
+        await setDoc(userDocRef, {
+          [currentGameTitle]: base64Data
+        }, { merge: true });
+        
+        console.log("Cloud save synced to Firestore!");
+      } catch (err) {
+        console.error("Firestore save failed:", err);
+      }
+    };
+
+    window.loadSaveFromCloud = async function() {
+      if (!currentUser || !currentGameTitle) return null;
+      try {
+        const userDocRef = doc(db, "saves", currentUser.uid);
+        const docSnap = await getDoc(userDocRef);
+        
+        if (docSnap.exists() && docSnap.data()[currentGameTitle]) {
+          console.log("Cloud save loaded from Firestore!");
+          const base64Data = docSnap.data()[currentGameTitle];
+          return base64ToBlob(base64Data);
+        }
+        return null;
+      } catch (err) {
+        console.error("No Firestore save found or load failed:", err);
+        return null;
+      }
+    };
+  </script>
+
   <script>
+    // GitHub arcade scanner + unified emulator launcher + account helpers
     const GITHUB_USERNAME = 'absa232';
     const GITHUB_REPO = 'retrohub';
 
@@ -242,68 +454,86 @@
       'n64': { system: 'Nintendo_-_Nintendo_64', core: 'n64', name: 'NINTENDO 64', emoji: '🏰' }
     };
 
-    // User Dropdown Handlers
-    function toggleProfileDropdown() {
-      const dropdown = document.getElementById('profileDropdown');
-      if (dropdown) dropdown.classList.toggle('show');
-    }
+    // Create a small dropdown for account actions inside the existing profile badge
+    (function createProfileDropdown(){
+      const profile = document.getElementById('user-profile');
+      if (!profile) return;
+      const menu = document.createElement('div');
+      menu.id = 'profile-dropdown';
+      menu.style.position = 'absolute';
+      menu.style.right = '20px';
+      menu.style.top = '70px';
+      menu.style.background = 'var(--card-bg)';
+      menu.style.border = '1px solid rgba(255,255,255,0.06)';
+      menu.style.borderRadius = '8px';
+      menu.style.display = 'none';
+      menu.style.zIndex = 10001;
+      menu.innerHTML = `
+        <div style="padding:8px 12px; cursor:pointer; color:var(--text); font-size:0.95rem;" id="change-account">🔄 Change Account</div>
+        <div style="padding:8px 12px; cursor:pointer; color:var(--accent); font-size:0.95rem;" id="log-out">🚪 Log Out</div>
+      `;
+      document.body.appendChild(menu);
 
-    window.addEventListener('click', function(e) {
-      const container = document.querySelector('.user-profile-container');
-      if (container && !container.contains(e.target)) {
-        const dropdown = document.getElementById('profileDropdown');
-        if (dropdown) dropdown.classList.remove('show');
-      }
-    });
+      profile.style.position = 'relative';
+      profile.addEventListener('click', (e) => {
+        e.stopPropagation();
+        menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
+      });
+      document.addEventListener('click', () => menu.style.display = 'none');
 
-    function changeAccount() {
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
-        firebase.auth().signInWithRedirect(provider);
+      document.getElementById('change-account').addEventListener('click', () => {
+        menu.style.display = 'none';
+        changeAccount();
+      });
+      document.getElementById('log-out').addEventListener('click', () => {
+        menu.style.display = 'none';
+        logout();
+      });
+    })();
+
+    // Change account (uses modular Firebase auth already initialized in-page)
+    async function changeAccount() {
+      if (window.loginAndEnter) {
+        try { await window.loginAndEnter(); } catch (e) { console.error('Change account failed', e); }
       } else {
-        alert("Redirecting to account selector...");
+        alert('Authentication is not ready yet. Please try again.');
       }
     }
 
-    function logout() {
-      if (typeof firebase !== 'undefined' && firebase.auth) {
-        firebase.auth().signOut().then(() => location.reload());
-      } else {
-        alert("Logging out...");
+    async function logout() {
+      try {
+        if (window.auth && typeof window.auth.signOut === 'function') {
+          await window.auth.signOut();
+          location.reload();
+        } else {
+          alert('Logout is not available.');
+        }
+      } catch (err) {
+        console.error('Logout failed', err);
       }
     }
 
-    // GitHub Arcade Directory Scanner
+    // GitHub scanner to populate #games-container
     async function fetchArcadeLibrary() {
       const container = document.getElementById('games-container');
       if (!container) return;
 
       const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms`;
-
       try {
         const response = await fetch(apiUrl);
         if (!response.ok) {
-          if (response.status === 403) {
-            throw new Error("GitHub API rate limit reached. Please wait a few minutes and refresh.");
-          }
+          if (response.status === 403) throw new Error('GitHub API rate limit reached. Please wait a few minutes and refresh.');
           throw new Error(`Could not access 'roms' directory (${response.status}).`);
         }
 
         const folders = await response.json();
         container.innerHTML = '';
-
         let totalGamesFound = 0;
 
         for (const folder of folders) {
           if (folder.type === 'dir') {
             const systemKey = folder.name.toLowerCase();
-            const systemData = SYSTEM_MAP[systemKey] || { 
-              system: null,
-              core: systemKey,
-              name: folder.name.toUpperCase(), 
-              emoji: '🎮' 
-            };
+            const systemData = SYSTEM_MAP[systemKey] || { system: null, core: systemKey, name: folder.name.toUpperCase(), emoji: '🎮' };
 
             const subfolderUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms/${folder.name}`;
             const gamesResponse = await fetch(subfolderUrl);
@@ -311,56 +541,40 @@
 
             const files = await gamesResponse.json();
 
-            const romFiles = files.filter(f => 
-              f.type === 'file' && (
-                f.name.endsWith('.zip') || 
-                f.name.endsWith('.md') || 
-                f.name.endsWith('.gen') || 
-                f.name.endsWith('.smd') || 
-                f.name.endsWith('.bin') || 
-                f.name.endsWith('.snes') || 
-                f.name.endsWith('.gba') || 
-                f.name.endsWith('.z64') || 
-                f.name.endsWith('.n64')
-              )
-            );
+            const romFiles = files.filter(f => f.type === 'file' && (
+              f.name.endsWith('.zip') || f.name.endsWith('.gen') || f.name.endsWith('.smd') || f.name.endsWith('.bin') || f.name.endsWith('.snes') || f.name.endsWith('.gba') || f.name.endsWith('.z64') || f.name.endsWith('.n64')
+            ));
 
             if (romFiles.length > 0) {
               totalGamesFound += romFiles.length;
 
-              const sectionHtml = `
-                <div class="category-section">
-                  <h2 class="category-title">${systemData.name}</h2>
-                  <div class="games-grid" id="grid-${systemKey}"></div>
-                </div>
+              const section = document.createElement('div');
+              section.className = 'category-section';
+              section.innerHTML = `
+                <h2 class="category-title">${systemData.name}</h2>
+                <div class="games-grid" id="grid-${systemKey}"></div>
               `;
-              container.insertAdjacentHTML('beforeend', sectionHtml);
+              container.appendChild(section);
 
-              const grid = document.getElementById(`grid-${systemKey}`);
+              const grid = section.querySelector(`#grid-${systemKey}`);
 
               romFiles.forEach(file => {
                 const gameTitle = file.name.replace(/\.[^/.]+$/, "");
                 const romPath = `roms/${folder.name}/${file.name}`;
-                
-                // Escape single/double quotes so games with apostrophes like Buster's work properly
                 const safeTitle = gameTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
                 const safeRomPath = romPath.replace(/'/g, "\\'");
-
                 const encodedTitle = encodeURIComponent(gameTitle);
-                const boxartUrl = systemData.system 
-                  ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` 
-                  : '';
+                const boxartUrl = systemData.system ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` : '';
 
-                const cardHtml = `
-                  <div class="game-card" onclick="launchGame('${systemKey}', '${safeRomPath}', '${safeTitle}')">
-                    <div class="game-thumb">
-                      ${boxartUrl ? `<img src="${boxartUrl}" alt="${safeTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}
-                    </div>
-                    <h3>${gameTitle}</h3>
-                    <p>Click to play!</p>
-                  </div>
+                const card = document.createElement('div');
+                card.className = 'game-card';
+                card.setAttribute('onclick', `launchGame('${systemKey}', '${safeRomPath}', '${safeTitle}')`);
+                card.innerHTML = `
+                  <div class="game-thumb">${boxartUrl ? `<img src="${boxartUrl}" alt="${safeTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}</div>
+                  <h3>${gameTitle}</h3>
+                  <p>Click to play!</p>
                 `;
-                grid.insertAdjacentHTML('beforeend', cardHtml);
+                grid.appendChild(card);
               });
             }
           }
@@ -371,43 +585,48 @@
         }
 
       } catch (err) {
-        console.error("Error scanning library:", err);
+        console.error('Error scanning library:', err);
         container.innerHTML = `<div id="loading-games-msg">⚠️ ${err.message}</div>`;
       }
     }
 
-    // Launch game into modal window
-    function launchGame(systemKey, romPath, title) {
-      const modal = document.getElementById('game-modal');
-      const gameTitleElem = document.getElementById('modal-game-title');
-      const playerContainer = document.getElementById('emulator-container');
+    // Unified emulator launcher: set EJS_* globals then append loader.js
+    async function launchGame(core, romPath, title) {
+      window.currentGameTitle = title;
+      document.getElementById('modal-title').innerText = title;
+      document.getElementById('player-modal').classList.add('active');
 
-      if (!modal || !playerContainer) return;
-
-      if (gameTitleElem) gameTitleElem.textContent = title;
-
-      modal.style.display = 'flex';
-      playerContainer.innerHTML = '<div id="emulator"></div>';
-
-      const systemInfo = SYSTEM_MAP[systemKey] || { core: systemKey };
-
-      window.EJS_player = '#emulator';
+      window.EJS_player = '#game';
+      window.EJS_core = core;
       window.EJS_gameUrl = romPath;
-      window.EJS_core = systemInfo.core;
       window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+
+      if (window.loadSaveFromCloud) {
+        const cloudSave = await window.loadSaveFromCloud();
+        if (cloudSave) {
+          window.EJS_loadStateURL = URL.createObjectURL(cloudSave);
+        }
+      }
+
+      window.EJS_onSaveState = function(data) {
+        if (window.syncSaveToCloud) {
+          const blob = new Blob([data.state], { type: 'application/octet-stream' });
+          window.syncSaveToCloud(blob);
+        }
+      };
+
+      if (window.EJS_emulator) {
+        try { window.EJS_emulator.destroy(); } catch (e) { console.warn(e); }
+      }
 
       const ejsScript = document.createElement('script');
       ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
       document.body.appendChild(ejsScript);
     }
 
-    // Close game modal
-    function closeModal() {
-      const modal = document.getElementById('game-modal');
-      const playerContainer = document.getElementById('emulator-container');
-
-      if (modal) modal.style.display = 'none';
-      if (playerContainer) playerContainer.innerHTML = '';
+    function closeGame() {
+      document.getElementById('player-modal').classList.remove('active');
+      document.getElementById('game').innerHTML = '';
     }
 
     window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
