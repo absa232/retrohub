@@ -448,85 +448,61 @@
   <!-- GITHUB LIBRARY SCANNER -->
   <script>
     async function fetchArcadeLibrary() {
-      const container = document.getElementById('games-container');
-      const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms`;
+  const container = document.getElementById('games-container');
 
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          if (response.status === 403) {
-            throw new Error("GitHub API limit reached. Please wait a few minutes and refresh.");
-          }
-          throw new Error("Could not find roms directory");
-        }
-        const folders = await response.json();
+  try {
+    // Fetches your local manifest file - 0 API limits!
+    const response = await fetch('manifest.json');
+    if (!response.ok) throw new Error("Could not find manifest.json");
+    
+    const library = await response.json();
+    container.innerHTML = '';
 
-        container.innerHTML = '';
+    for (const [systemKey, games] of Object.entries(library)) {
+      const systemData = SYSTEM_MAP[systemKey.toLowerCase()] || { 
+        system: null,
+        name: systemKey.toUpperCase(), 
+        emoji: '🎮' 
+      };
 
-        for (const folder of folders) {
-          if (folder.type === 'dir') {
-            const systemKey = folder.name.toLowerCase();
-            const systemData = SYSTEM_MAP[systemKey] || { 
-              system: null,
-              name: folder.name.toUpperCase(), 
-              emoji: '🎮' 
-            };
+      if (games.length > 0) {
+        const sectionHtml = `
+          <div class="category-section">
+            <h2 class="category-title">${systemData.name}</h2>
+            <div class="games-grid" id="grid-${systemKey}"></div>
+          </div>
+        `;
+        container.insertAdjacentHTML('beforeend', sectionHtml);
 
-            const gamesResponse = await fetch(folder.url);
-            if (!gamesResponse.ok) continue;
-            const files = await gamesResponse.json();
+        const grid = document.getElementById(`grid-${systemKey}`);
 
-            const romFiles = files.filter(f => 
-              f.name.endsWith('.zip') || 
-              f.name.endsWith('.snes') || 
-              f.name.endsWith('.gba') || 
-              f.name.endsWith('.z64') || 
-              f.name.endsWith('.n64') ||
-              f.name.endsWith('.md') ||
-              f.name.endsWith('.gen')
-            );
+        games.forEach(filename => {
+          const gameTitle = filename.replace(/\.[^/.]+$/, "");
+          const romPath = `roms/${systemKey}/${filename}`;
+          
+          const encodedTitle = encodeURIComponent(gameTitle);
+          const boxartUrl = systemData.system 
+            ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` 
+            : '';
 
-            if (romFiles.length > 0) {
-              const sectionHtml = `
-                <div class="category-section">
-                  <h2 class="category-title">${systemData.name}</h2>
-                  <div class="games-grid" id="grid-${systemKey}"></div>
-                </div>
-              `;
-              container.insertAdjacentHTML('beforeend', sectionHtml);
-
-              const grid = document.getElementById(`grid-${systemKey}`);
-
-              romFiles.forEach(file => {
-                const gameTitle = file.name.replace(/\.[^/.]+$/, "");
-                const romPath = `roms/${folder.name}/${file.name}`;
-                
-                const encodedTitle = encodeURIComponent(gameTitle);
-                const boxartUrl = systemData.system 
-                  ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` 
-                  : '';
-
-                const cardHtml = `
-                  <div class="game-card" onclick="launchGame('${systemKey}', '${romPath}', '${gameTitle}')">
-                    <div class="game-thumb">
-                      ${boxartUrl ? `<img src="${boxartUrl}" alt="${gameTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}
-                    </div>
-                    <h3>${gameTitle}</h3>
-                    <p>Click to play!</p>
-                  </div>
-                `;
-                grid.insertAdjacentHTML('beforeend', cardHtml);
-              });
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error loading library:", err);
-        container.innerHTML = `<div id="loading-games-msg">${err.message}</div>`;
+          const cardHtml = `
+            <div class="game-card" onclick="launchGame('${systemKey}', '${romPath}', '${gameTitle}')">
+              <div class="game-thumb">
+                ${boxartUrl ? `<img src="${boxartUrl}" alt="${gameTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}
+              </div>
+              <h3>${gameTitle}</h3>
+              <p>Click to play!</p>
+            </div>
+          `;
+          grid.insertAdjacentHTML('beforeend', cardHtml);
+        });
       }
     }
-
-    window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
+  } catch (err) {
+    console.error("Error loading library:", err);
+    container.innerHTML = `<div id="loading-games-msg">Create a manifest.json file to list your games!</div>`;
+  }
+}
   </script>
 
   <!-- FIXED EMULATORJS LAUNCHER -->
