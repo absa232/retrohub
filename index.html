@@ -356,33 +356,56 @@
     let currentGameTitle = "";
 
     function updateUserUI(user) {
-      if (!user) return;
-      currentUser = user;
+      currentUser = user || null;
       document.getElementById('landing-screen').classList.add('hidden');
-      document.getElementById('user-greeting').innerText = `Welcome back! Pick a game and let's play together!`;
-      
-      // Update Top-Right Profile Badge
-      document.getElementById('user-name').innerText = user.displayName || 'Player';
-      if (user.photoURL) {
-        document.getElementById('user-avatar').src = user.photoURL;
+      document.getElementById('user-greeting').innerText = user
+        ? `Welcome back! Pick a game and let's play together!`
+        : `Pick a game and let's play together!`;
+
+      if (user) {
+        document.getElementById('user-name').innerText = user.displayName || 'Player';
+        if (user.photoURL) {
+          document.getElementById('user-avatar').src = user.photoURL;
+        } else {
+          document.getElementById('user-avatar').src = 'https://via.placeholder.com/40';
+        }
+        document.getElementById('user-profile').classList.add('active');
       } else {
+        document.getElementById('user-name').innerText = 'Guest Player';
         document.getElementById('user-avatar').src = 'https://via.placeholder.com/40';
+        document.getElementById('user-profile').classList.add('active');
       }
-      document.getElementById('user-profile').classList.add('active');
+    }
+
+    function enterArcadeWithoutLogin() {
+      updateUserUI({
+        displayName: 'Guest Player',
+        photoURL: 'https://via.placeholder.com/40'
+      });
     }
 
     window.loginAndEnter = async function() {
+      const isLocalFile = location.protocol === 'file:';
+      if (isLocalFile) {
+        enterArcadeWithoutLogin();
+        return;
+      }
+
       try {
         const result = await signInWithPopup(auth, provider);
         updateUserUI(result.user);
       } catch (error) {
         console.error("Authentication failed:", error);
+        enterArcadeWithoutLogin();
       }
     };
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
         updateUserUI(user);
+      } else if (location.protocol !== 'file:') {
+        // leave landing screen visible until user taps in, but never block the arcade forever
+        document.getElementById('landing-screen').classList.remove('hidden');
       }
     });
 
@@ -561,14 +584,16 @@
               romFiles.forEach(file => {
                 const gameTitle = file.name.replace(/\.[^/.]+$/, "");
                 const romPath = `roms/${folder.name}/${file.name}`;
+                const rawRomUrl = file.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/main/${romPath}`;
                 const safeTitle = gameTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-                const safeRomPath = romPath.replace(/'/g, "\\'");
+                const safeRomUrl = rawRomUrl.replace(/'/g, "\\'");
                 const encodedTitle = encodeURIComponent(gameTitle);
                 const boxartUrl = systemData.system ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` : '';
 
+                const launchCore = systemData.core || systemKey;
                 const card = document.createElement('div');
                 card.className = 'game-card';
-                card.setAttribute('onclick', `launchGame('${systemKey}', '${safeRomPath}', '${safeTitle}')`);
+                card.setAttribute('onclick', `launchGame('${launchCore}', '${safeRomUrl}', '${safeTitle}')`);
                 card.innerHTML = `
                   <div class="game-thumb">${boxartUrl ? `<img src="${boxartUrl}" alt="${safeTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}</div>
                   <h3>${gameTitle}</h3>
@@ -592,13 +617,24 @@
 
     // Unified emulator launcher: set EJS_* globals then append loader.js
     async function launchGame(core, romPath, title) {
+      const mappedCore = SYSTEM_MAP[core]?.core || core;
+
       window.currentGameTitle = title;
       document.getElementById('modal-title').innerText = title;
       document.getElementById('player-modal').classList.add('active');
 
+      const gameRoot = document.getElementById('game');
+      if (gameRoot) {
+        gameRoot.innerHTML = '';
+      }
+
+      const normalizedRomUrl = /^https?:\/\//i.test(romPath)
+        ? romPath
+        : `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/main/${romPath}`;
+
       window.EJS_player = '#game';
-      window.EJS_core = core;
-      window.EJS_gameUrl = romPath;
+      window.EJS_core = mappedCore;
+      window.EJS_gameUrl = normalizedRomUrl;
       window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
 
       if (window.loadSaveFromCloud) {
@@ -619,14 +655,24 @@
         try { window.EJS_emulator.destroy(); } catch (e) { console.warn(e); }
       }
 
+      const existingLoader = document.querySelector('script[src="https://cdn.emulatorjs.org/stable/data/loader.js"]');
+      if (existingLoader) {
+        existingLoader.remove();
+      }
+
       const ejsScript = document.createElement('script');
       ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+      ejsScript.async = false;
       document.body.appendChild(ejsScript);
     }
 
     function closeGame() {
       document.getElementById('player-modal').classList.remove('active');
-      document.getElementById('game').innerHTML = '';
+      if (window.EJS_emulator) {
+        try { window.EJS_emulator.destroy(); } catch (e) { console.warn(e); }
+      }
+      const gameNode = document.getElementById('game');
+      if (gameNode) gameNode.innerHTML = '';
     }
 
     window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
