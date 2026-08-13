@@ -208,6 +208,7 @@
       align-items: center;
       font-size: 2.5rem;
       font-family: 'Noto Color Emoji', sans-serif;
+      overflow: hidden;
     }
 
     .game-card h3 {
@@ -310,77 +311,31 @@
 
   <!-- POPUP EMULATOR PLAYER -->
   <div id="player-modal" class="modal">
-  <div class="modal-header">
-    <h2 id="modal-title">Loading Game...</h2>
-    <button class="close-btn" onclick="closeGame()">✕ Close</button>
+    <div class="modal-header">
+      <h2 id="modal-title">Loading Game...</h2>
+      <button class="close-btn" onclick="closeGame()">✕ Close</button>
+    </div>
+    <div class="emulator-container">
+      <div id="game"></div>
+    </div>
   </div>
-  <div class="emulator-container">
-    <div id="game"></div>
-  </div>
-</div>
-
-<script>
-  async function launchGame(core, romPath, title) {
-    window.currentGameTitle = title;
-    
-    // 1. Show the modal
-    const modal = document.getElementById('player-modal');
-    document.getElementById('modal-title').innerText = title;
-    modal.classList.add('active');
-
-    // 2. Clear any previously loaded emulator
-    const container = document.getElementById('game');
-    container.innerHTML = '';
-
-    // 3. Set EmulatorJS global variables
-    window.EJS_player = '#game';
-    window.EJS_core = core;
-    window.EJS_gameUrl = romPath;
-    window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
-
-    // Handle Cloud Save Loading
-    if (window.loadSaveFromCloud) {
-      const cloudSave = await window.loadSaveFromCloud();
-      if (cloudSave) {
-        window.EJS_loadStateURL = URL.createObjectURL(cloudSave);
-      }
-    }
-
-    // Handle Cloud Save Syncing
-    window.EJS_onSaveState = function(data) {
-      if (window.syncSaveToCloud) {
-        const blob = new Blob([data.state], { type: 'application/octet-stream' });
-        window.syncSaveToCloud(blob);
-      }
-    };
-
-    // 4. Dynamically inject the EmulatorJS script tag
-    const script = document.createElement('script');
-    script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-    container.appendChild(script);
-  }
-
-  function closeGame() {
-    document.getElementById('player-modal').classList.remove('active');
-    document.getElementById('game').innerHTML = '';
-  }
-</script>
 
   <!-- CONFIGURATION -->
   <script>
-    // REPLACE THESE WITH YOUR ACTUAL GITHUB USERNAME & REPOSITORY NAME
+    // UPDATE THESE TO YOUR GITHUB DETAILS
     const GITHUB_USERNAME = "absa232";
     const GITHUB_REPO = "retrohub";
 
-    // System Emojis & Display Names mapping
+    // System Emojis & Libretro Cover Art Map
     const SYSTEM_MAP = {
-      'snes': { name: 'Super Nintendo (SNES)', emoji: '🍄' },
-      'gba': { name: 'Game Boy Advance (GBA)', emoji: '⚡' },
-      'n64': { name: 'Nintendo 64 (N64)', emoji: '⭐' },
-      'nes': { name: 'Nintendo (NES)', emoji: '👾' },
-      'gbc': { name: 'Game Boy Color (GBC)', emoji: '🎨' },
-      'nds': { name: 'Nintendo DS (NDS)', emoji: '📱' },
-      'megadrive': { name: 'Sega Genesis', emoji: '🦔' }
+      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', name: 'Super Nintendo (SNES)', emoji: '🍄' },
+      'gba': { system: 'Nintendo_-_Game_Boy_Advance', name: 'Game Boy Advance (GBA)', emoji: '⚡' },
+      'n64': { system: 'Nintendo_-_Nintendo_64', name: 'Nintendo 64 (N64)', emoji: '⭐' },
+      'nes': { system: 'Nintendo_-_Nintendo_Entertainment_System', name: 'Nintendo (NES)', emoji: '👾' },
+      'gbc': { system: 'Nintendo_-_Game_Boy_Color', name: 'Game Boy Color (GBC)', emoji: '🎨' },
+      'nds': { system: 'Nintendo_-_Nintendo_DS', name: 'Nintendo DS (NDS)', emoji: '📱' },
+      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', name: 'Sega Genesis', emoji: '🦔' },
+      'sega': { system: 'Sega_-_Mega_Drive_-_Genesis', name: 'Sega Genesis', emoji: '🦔' }
     };
   </script>
 
@@ -490,47 +445,46 @@
     };
   </script>
 
-  <!-- GITHUB AUTOMATIC DASHBOARD BUILDER -->
-  <!-- GITHUB AUTOMATIC DASHBOARD BUILDER (WITH AUTO THUMBNAILS) -->
+  <!-- GITHUB LIBRARY SCANNER -->
   <script>
-    // Libretro system folder names for box art mapping
-    const LIBRETRO_MAP = {
-      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', name: 'Super Nintendo (SNES)', emoji: '🍄' },
-      'gba': { system: 'Nintendo_-_Game_Boy_Advance', name: 'Game Boy Advance (GBA)', emoji: '⚡' },
-      'n64': { system: 'Nintendo_-_Nintendo_64', name: 'Nintendo 64 (N64)', emoji: '⭐' },
-      'nes': { system: 'Nintendo_-_Nintendo_Entertainment_System', name: 'Nintendo (NES)', emoji: '👾' },
-      'gbc': { system: 'Nintendo_-_Game_Boy_Color', name: 'Game Boy Color (GBC)', emoji: '🎨' },
-      'nds': { system: 'Nintendo_-_Nintendo_DS', name: 'Nintendo DS (NDS)', emoji: '📱' },
-      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', name: 'Sega Genesis', emoji: '🦔' }
-    };
-
     async function fetchArcadeLibrary() {
       const container = document.getElementById('games-container');
       const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms`;
 
       try {
         const response = await fetch(apiUrl);
-        if (!response.ok) throw new Error("Could not find roms directory");
+        if (!response.ok) {
+          if (response.status === 403) {
+            throw new Error("GitHub API limit reached. Please wait a few minutes and refresh.");
+          }
+          throw new Error("Could not find roms directory");
+        }
         const folders = await response.json();
 
-        container.innerHTML = ''; // Clear loading message
+        container.innerHTML = '';
 
         for (const folder of folders) {
           if (folder.type === 'dir') {
             const systemKey = folder.name.toLowerCase();
-            const systemData = LIBRETRO_MAP[systemKey] || { 
+            const systemData = SYSTEM_MAP[systemKey] || { 
               system: null,
               name: folder.name.toUpperCase(), 
               emoji: '🎮' 
             };
 
-            // Fetch games inside subfolder
             const gamesResponse = await fetch(folder.url);
             if (!gamesResponse.ok) continue;
             const files = await gamesResponse.json();
 
-            // Filter for supported ROM files
-            const romFiles = files.filter(f => f.name.endsWith('.zip') || f.name.endsWith('.snes') || f.name.endsWith('.gba') || f.name.endsWith('.z64') || f.name.endsWith('.n64'));
+            const romFiles = files.filter(f => 
+              f.name.endsWith('.zip') || 
+              f.name.endsWith('.snes') || 
+              f.name.endsWith('.gba') || 
+              f.name.endsWith('.z64') || 
+              f.name.endsWith('.n64') ||
+              f.name.endsWith('.md') ||
+              f.name.endsWith('.gen')
+            );
 
             if (romFiles.length > 0) {
               const sectionHtml = `
@@ -544,11 +498,9 @@
               const grid = document.getElementById(`grid-${systemKey}`);
 
               romFiles.forEach(file => {
-                // Clean filename to match box art database
                 const gameTitle = file.name.replace(/\.[^/.]+$/, "");
                 const romPath = `roms/${folder.name}/${file.name}`;
                 
-                // Build Libretro cover art URL
                 const encodedTitle = encodeURIComponent(gameTitle);
                 const boxartUrl = systemData.system 
                   ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` 
@@ -570,44 +522,51 @@
         }
       } catch (err) {
         console.error("Error loading library:", err);
-        container.innerHTML = `<div id="loading-games-msg">Failed to scan 'roms' folder. Check GITHUB_USERNAME and GITHUB_REPO!</div>`;
+        container.innerHTML = `<div id="loading-games-msg">${err.message}</div>`;
       }
     }
 
     window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
   </script>
 
-  <!-- EMULATOR SCRIPT -->
-  <script src="https://cdn.emulatorjs.org/stable/data/loader.js"></script>
-
+  <!-- FIXED EMULATORJS LAUNCHER -->
   <script>
     async function launchGame(core, romPath, title) {
       window.currentGameTitle = title;
-      document.getElementById('modal-title').innerText = title;
-      document.getElementById('player-modal').classList.add('active');
-
-      EJS_player = "#game";
-      EJS_core = core;
-      EJS_gameUrl = romPath;
-      EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
       
+      const modal = document.getElementById('player-modal');
+      document.getElementById('modal-title').innerText = title;
+      modal.classList.add('active');
+
+      const container = document.getElementById('game');
+      container.innerHTML = '';
+
+      // Set global configuration variables
+      window.EJS_player = '#game';
+      window.EJS_core = core;
+      window.EJS_gameUrl = romPath;
+      
+      // FIXED: Using jsDelivr CDN with proper trailing slash
+      window.EJS_pathtodata = 'https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/';
+
       if (window.loadSaveFromCloud) {
         const cloudSave = await window.loadSaveFromCloud();
         if (cloudSave) {
-          EJS_loadStateURL = URL.createObjectURL(cloudSave);
+          window.EJS_loadStateURL = URL.createObjectURL(cloudSave);
         }
       }
 
-      EJS_onSaveState = function(data) {
+      window.EJS_onSaveState = function(data) {
         if (window.syncSaveToCloud) {
           const blob = new Blob([data.state], { type: 'application/octet-stream' });
           window.syncSaveToCloud(blob);
         }
       };
 
-      if (window.EJS_emulator) {
-        window.EJS_emulator.destroy();
-      }
+      // FIXED: Load loader.js directly from jsDelivr CDN
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/emulatorjs@latest/data/loader.js';
+      container.appendChild(script);
     }
 
     function closeGame() {
