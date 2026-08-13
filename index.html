@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RetroHub Arcade</title>
 
-  <!-- Favicon fix to prevent 404 console errors -->
+  <!-- Prevent 404 favicon error in console -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
 
   <style>
@@ -17,7 +17,6 @@
       min-height: 100vh;
     }
 
-    /* Header & Navigation */
     header {
       display: flex;
       justify-content: space-between;
@@ -28,7 +27,7 @@
     }
     .logo { font-size: 1.5rem; font-weight: bold; color: #00e676; }
 
-    /* User Profile Dropdown Styling */
+    /* Account Profile & Dropdown */
     .user-profile-container {
       position: relative;
     }
@@ -58,7 +57,7 @@
     .user-name { font-size: 0.9rem; font-weight: 500; }
 
     .dropdown-menu {
-      display: none; /* Hidden by default */
+      display: none;
       position: absolute;
       right: 0;
       top: 45px;
@@ -85,7 +84,6 @@
     .dropdown-item.danger { color: #ff5252; }
     .dropdown-item.danger:hover { background-color: #3d1c1c; }
 
-    /* Main Container & Library Grid */
     main { padding: 2rem; }
     #loading-games-msg {
       text-align: center;
@@ -146,7 +144,7 @@
   <header>
     <div class="logo">🎮 RetroHub</div>
 
-    <!-- User Account Dropdown -->
+    <!-- Account Dropdown Section -->
     <div class="user-profile-container">
       <div class="user-btn" id="userBtn" onclick="toggleProfileDropdown()">
         <div class="user-avatar" id="userAvatar">G</div>
@@ -167,12 +165,14 @@
 
   <main>
     <div id="games-container">
-      <div id="loading-games-msg">Loading your arcade library...</div>
+      <div id="loading-games-msg">Scanning your arcade library...</div>
     </div>
   </main>
 
   <script>
-    // System definitions map
+    const GITHUB_USERNAME = 'absa232';
+    const GITHUB_REPO = 'retrohub';
+
     const SYSTEM_MAP = {
       'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', name: 'SEGA MEGADRIVE', emoji: '🌀' },
       'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', name: 'SUPER NINTENDO', emoji: '🎮' },
@@ -180,13 +180,12 @@
       'n64': { system: 'Nintendo_-_Nintendo_64', name: 'NINTENDO 64', emoji: '🏰' }
     };
 
-    // Toggle user profile dropdown
+    // Account Dropdown Handlers
     function toggleProfileDropdown() {
       const dropdown = document.getElementById('profileDropdown');
       dropdown.classList.toggle('show');
     }
 
-    // Close dropdown if clicking anywhere outside of it
     window.addEventListener('click', function(e) {
       const container = document.querySelector('.user-profile-container');
       if (container && !container.contains(e.target)) {
@@ -194,100 +193,121 @@
       }
     });
 
-    // Account Actions
     function changeAccount() {
-      alert("Redirecting to account picker...");
-      // Add your Firebase Google re-authentication / prompt logic here:
-      // const provider = new firebase.auth.GoogleAuthProvider();
-      // provider.setCustomParameters({ prompt: 'select_account' });
-      // firebase.auth().signInWithRedirect(provider);
+      alert("Redirecting to Google account selector...");
+      // Your Firebase account switch logic goes here
     }
 
     function logout() {
       alert("Logging out...");
-      // Add your Firebase logout logic here:
-      // firebase.auth().signOut().then(() => location.reload());
+      // Your Firebase logout logic goes here
     }
 
-    // Direct, rate-limit-free loader using manifest.json
+    // Direct GitHub Scanner Fix
     async function fetchArcadeLibrary() {
       const container = document.getElementById('games-container');
+      const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms`;
 
       try {
-        const response = await fetch('manifest.json');
-        
+        const response = await fetch(apiUrl);
         if (!response.ok) {
-          throw new Error("Could not find 'manifest.json'. Please ensure manifest.json exists in your repository root.");
+          if (response.status === 403) {
+            throw new Error("GitHub API limit reached. Please try again in a few minutes.");
+          }
+          throw new Error(`Could not access 'roms' directory (${response.status}).`);
         }
 
-        const library = await response.json();
-        container.innerHTML = ''; // Clear loading message
+        const folders = await response.json();
+        container.innerHTML = '';
 
-        let totalGames = 0;
+        let totalGamesFound = 0;
 
-        for (const [systemKey, games] of Object.entries(library)) {
-          const sysKeyLower = systemKey.toLowerCase();
-          const systemData = SYSTEM_MAP[sysKeyLower] || { 
-            system: null,
-            name: systemKey.toUpperCase(), 
-            emoji: '🎮' 
-          };
+        for (const folder of folders) {
+          if (folder.type === 'dir') {
+            const systemKey = folder.name.toLowerCase();
+            const systemData = SYSTEM_MAP[systemKey] || { 
+              system: null,
+              name: folder.name.toUpperCase(), 
+              emoji: '🎮' 
+            };
 
-          if (games && games.length > 0) {
-            totalGames += games.length;
+            // Fetch contents inside system folder safely
+            const subfolderUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms/${folder.name}`;
+            const gamesResponse = await fetch(subfolderUrl);
+            if (!gamesResponse.ok) continue;
 
-            const sectionHtml = `
-              <div class="category-section">
-                <h2 class="category-title">${systemData.name}</h2>
-                <div class="games-grid" id="grid-${sysKeyLower}"></div>
-              </div>
-            `;
-            container.insertAdjacentHTML('beforeend', sectionHtml);
+            const files = await gamesResponse.json();
 
-            const grid = document.getElementById(`grid-${sysKeyLower}`);
+            // Filter supported ROM extensions
+            const romFiles = files.filter(f => 
+              f.type === 'file' && (
+                f.name.endsWith('.zip') || 
+                f.name.endsWith('.md') || 
+                f.name.endsWith('.gen') || 
+                f.name.endsWith('.smd') || 
+                f.name.endsWith('.bin') || 
+                f.name.endsWith('.snes') || 
+                f.name.endsWith('.gba') || 
+                f.name.endsWith('.z64') || 
+                f.name.endsWith('.n64')
+              )
+            );
 
-            games.forEach(filename => {
-              const gameTitle = filename.replace(/\.[^/.]+$/, "");
-              const romPath = `roms/${systemKey}/${filename}`;
-              
-              // Safely handle apostrophes or quotes in titles
-              const safeTitle = gameTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-              const safeRomPath = romPath.replace(/'/g, "\\'");
+            if (romFiles.length > 0) {
+              totalGamesFound += romFiles.length;
 
-              const encodedTitle = encodeURIComponent(gameTitle);
-              const boxartUrl = systemData.system 
-                ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` 
-                : '';
-
-              const cardHtml = `
-                <div class="game-card" onclick="launchGame('${sysKeyLower}', '${safeRomPath}', '${safeTitle}')">
-                  <div class="game-thumb">
-                    ${boxartUrl ? `<img src="${boxartUrl}" alt="${safeTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}
-                  </div>
-                  <h3>${gameTitle}</h3>
-                  <p>Click to play!</p>
+              const sectionHtml = `
+                <div class="category-section">
+                  <h2 class="category-title">${systemData.name}</h2>
+                  <div class="games-grid" id="grid-${systemKey}"></div>
                 </div>
               `;
-              grid.insertAdjacentHTML('beforeend', cardHtml);
-            });
+              container.insertAdjacentHTML('beforeend', sectionHtml);
+
+              const grid = document.getElementById(`grid-${systemKey}`);
+
+              romFiles.forEach(file => {
+                const gameTitle = file.name.replace(/\.[^/.]+$/, "");
+                const romPath = `roms/${folder.name}/${file.name}`;
+                
+                // Fix: Escape single quotes and quotes to avoid breaking onclick attributes
+                const safeTitle = gameTitle.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const safeRomPath = romPath.replace(/'/g, "\\'");
+
+                const encodedTitle = encodeURIComponent(gameTitle);
+                const boxartUrl = systemData.system 
+                  ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` 
+                  : '';
+
+                const cardHtml = `
+                  <div class="game-card" onclick="launchGame('${systemKey}', '${safeRomPath}', '${safeTitle}')">
+                    <div class="game-thumb">
+                      ${boxartUrl ? `<img src="${boxartUrl}" alt="${safeTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}
+                    </div>
+                    <h3>${gameTitle}</h3>
+                    <p>Click to play!</p>
+                  </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHtml);
+              });
+            }
           }
         }
 
-        if (totalGames === 0) {
-          container.innerHTML = `<div id="loading-games-msg">No games listed in manifest.json!</div>`;
+        if (totalGamesFound === 0) {
+          container.innerHTML = `<div id="loading-games-msg">No game files found in your 'roms' folder.</div>`;
         }
 
       } catch (err) {
-        console.error("Error loading library:", err);
+        console.error("Error scanning library:", err);
         container.innerHTML = `<div id="loading-games-msg">⚠️ ${err.message}</div>`;
       }
     }
 
     function launchGame(system, romPath, title) {
-      alert(`Launching ${title} (${system}) from: ${romPath}`);
+      alert(`Launching ${title} (${system})`);
     }
 
-    // Initialize library scan on DOM ready
     window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
   </script>
 </body>
