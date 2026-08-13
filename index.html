@@ -124,7 +124,6 @@
       margin-top: 5px;
     }
 
-    /* Top-Right Profile Badge */
     .user-profile {
       display: none;
       align-items: center;
@@ -153,7 +152,7 @@
       color: var(--text);
     }
 
-    /* Categories */
+    /* Categories & Games */
     .category-section {
       margin-bottom: 50px;
     }
@@ -164,6 +163,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
+      text-transform: uppercase;
     }
 
     .category-title::before {
@@ -208,8 +208,6 @@
       align-items: center;
       font-size: 2.5rem;
       font-family: 'Noto Color Emoji', sans-serif;
-      color: var(--subtext);
-      object-fit: cover;
     }
 
     .game-card h3 {
@@ -220,6 +218,13 @@
     .game-card p {
       font-size: 0.85rem;
       color: var(--subtext);
+    }
+
+    #loading-games-msg {
+      text-align: center;
+      color: var(--subtext);
+      font-size: 1.2rem;
+      padding: 40px 0;
     }
 
     /* --- EMULATOR MODAL --- */
@@ -291,48 +296,15 @@
         <p id="user-greeting">Pick a game and let's play together!</p>
       </div>
 
-      <!-- Profile Badge (Top Right) -->
       <div id="user-profile" class="user-profile">
         <img id="user-avatar" class="user-avatar" src="" alt="Profile Picture" />
         <span id="user-name" class="user-name"></span>
       </div>
     </header>
 
-    <!-- SNES SECTION -->
-    <div class="category-section">
-      <h2 class="category-title">Super Nintendo (SNES)</h2>
-      <div class="games-grid">
-
-        <!-- Game 1 -->
-        <div class="game-card" onclick="launchGame('snes', 'roms/super-mario.snes', 'Super Mario World')">
-          <div class="game-thumb">🍄</div>
-          <h3>Super Mario World</h3>
-          <p>Classic 2D platforming masterpiece.</p>
-        </div>
-
-        <!-- Game 2 -->
-        <div class="game-card" onclick="launchGame('snes', 'roms/donkey-kong.snes', 'Donkey Kong Country')">
-          <div class="game-thumb">🍌</div>
-          <h3>Donkey Kong Country</h3>
-          <p>Awesome co-op adventures!</p>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- GBA SECTION -->
-    <div class="category-section">
-      <h2 class="category-title">Game Boy Advance (GBA)</h2>
-      <div class="games-grid">
-
-        <!-- Game 3 -->
-        <div class="game-card" onclick="launchGame('gba', 'roms/pokemon.gba', 'Pokemon Emerald')">
-          <div class="game-thumb">⚡</div>
-          <h3>Pokemon Emerald</h3>
-          <p>Explore Hoenn together.</p>
-        </div>
-
-      </div>
+    <!-- DYNAMIC GAMES CONTAINER -->
+    <div id="games-container">
+      <div id="loading-games-msg">Scanning your arcade library... 🕹️</div>
     </div>
   </div>
 
@@ -347,13 +319,30 @@
     </div>
   </div>
 
-  <!-- FIREBASE SDKs (Cloud Firestore) -->
+  <!-- CONFIGURATION -->
+  <script>
+    // REPLACE THESE WITH YOUR ACTUAL GITHUB USERNAME & REPOSITORY NAME
+    const GITHUB_USERNAME = "YOUR-USERNAME";
+    const GITHUB_REPO = "our-arcade";
+
+    // System Emojis & Display Names mapping
+    const SYSTEM_MAP = {
+      'snes': { name: 'Super Nintendo (SNES)', emoji: '🍄' },
+      'gba': { name: 'Game Boy Advance (GBA)', emoji: '⚡' },
+      'n64': { name: 'Nintendo 64 (N64)', emoji: '⭐' },
+      'nes': { name: 'Nintendo (NES)', emoji: '👾' },
+      'gbc': { name: 'Game Boy Color (GBC)', emoji: '🎨' },
+      'nds': { name: 'Nintendo DS (NDS)', emoji: '📱' },
+      'megadrive': { name: 'Sega Genesis', emoji: '🦔' }
+    };
+  </script>
+
+  <!-- FIREBASE SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
     import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // YOUR EXPLICIT FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyAeS_FJxXZbbakYuOMhF1MI_1P1Ht8EUwA",
       authDomain: "our-arcade-c417d.firebaseapp.com",
@@ -371,7 +360,6 @@
     provider.setCustomParameters({ prompt: 'select_account' });
 
     let currentUser = null;
-    let currentGameTitle = "";
 
     function updateUserUI(user) {
       if (!user) return;
@@ -379,7 +367,6 @@
       document.getElementById('landing-screen').classList.add('hidden');
       document.getElementById('user-greeting').innerText = `Welcome back! Pick a game and let's play together!`;
       
-      // Update Top-Right Profile Badge
       document.getElementById('user-name').innerText = user.displayName || 'Player';
       if (user.photoURL) {
         document.getElementById('user-avatar').src = user.photoURL;
@@ -422,13 +409,13 @@
     };
 
     window.syncSaveToCloud = async function(saveBlob) {
-      if (!currentUser || !currentGameTitle) return;
+      if (!currentUser || !window.currentGameTitle) return;
       try {
         const base64Data = await blobToBase64(saveBlob);
         const userDocRef = doc(db, "saves", currentUser.uid);
         
         await setDoc(userDocRef, {
-          [currentGameTitle]: base64Data
+          [window.currentGameTitle]: base64Data
         }, { merge: true });
         
         console.log("Cloud save synced to Firestore!");
@@ -438,14 +425,14 @@
     };
 
     window.loadSaveFromCloud = async function() {
-      if (!currentUser || !currentGameTitle) return null;
+      if (!currentUser || !window.currentGameTitle) return null;
       try {
         const userDocRef = doc(db, "saves", currentUser.uid);
         const docSnap = await getDoc(userDocRef);
         
-        if (docSnap.exists() && docSnap.data()[currentGameTitle]) {
+        if (docSnap.exists() && docSnap.data()[window.currentGameTitle]) {
           console.log("Cloud save loaded from Firestore!");
-          const base64Data = docSnap.data()[currentGameTitle];
+          const base64Data = docSnap.data()[window.currentGameTitle];
           return base64ToBlob(base64Data);
         }
         return null;
@@ -454,6 +441,93 @@
         return null;
       }
     };
+  </script>
+
+  <!-- GITHUB AUTOMATIC DASHBOARD BUILDER -->
+  <!-- GITHUB AUTOMATIC DASHBOARD BUILDER (WITH AUTO THUMBNAILS) -->
+  <script>
+    // Libretro system folder names for box art mapping
+    const LIBRETRO_MAP = {
+      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', name: 'Super Nintendo (SNES)', emoji: '🍄' },
+      'gba': { system: 'Nintendo_-_Game_Boy_Advance', name: 'Game Boy Advance (GBA)', emoji: '⚡' },
+      'n64': { system: 'Nintendo_-_Nintendo_64', name: 'Nintendo 64 (N64)', emoji: '⭐' },
+      'nes': { system: 'Nintendo_-_Nintendo_Entertainment_System', name: 'Nintendo (NES)', emoji: '👾' },
+      'gbc': { system: 'Nintendo_-_Game_Boy_Color', name: 'Game Boy Color (GBC)', emoji: '🎨' },
+      'nds': { system: 'Nintendo_-_Nintendo_DS', name: 'Nintendo DS (NDS)', emoji: '📱' },
+      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', name: 'Sega Genesis', emoji: '🦔' }
+    };
+
+    async function fetchArcadeLibrary() {
+      const container = document.getElementById('games-container');
+      const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms`;
+
+      try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error("Could not find roms directory");
+        const folders = await response.json();
+
+        container.innerHTML = ''; // Clear loading message
+
+        for (const folder of folders) {
+          if (folder.type === 'dir') {
+            const systemKey = folder.name.toLowerCase();
+            const systemData = LIBRETRO_MAP[systemKey] || { 
+              system: null,
+              name: folder.name.toUpperCase(), 
+              emoji: '🎮' 
+            };
+
+            // Fetch games inside subfolder
+            const gamesResponse = await fetch(folder.url);
+            if (!gamesResponse.ok) continue;
+            const files = await gamesResponse.json();
+
+            // Filter for supported ROM files
+            const romFiles = files.filter(f => f.name.endsWith('.zip') || f.name.endsWith('.snes') || f.name.endsWith('.gba') || f.name.endsWith('.z64') || f.name.endsWith('.n64'));
+
+            if (romFiles.length > 0) {
+              const sectionHtml = `
+                <div class="category-section">
+                  <h2 class="category-title">${systemData.name}</h2>
+                  <div class="games-grid" id="grid-${systemKey}"></div>
+                </div>
+              `;
+              container.insertAdjacentHTML('beforeend', sectionHtml);
+
+              const grid = document.getElementById(`grid-${systemKey}`);
+
+              romFiles.forEach(file => {
+                // Clean filename to match box art database
+                const gameTitle = file.name.replace(/\.[^/.]+$/, "");
+                const romPath = `roms/${folder.name}/${file.name}`;
+                
+                // Build Libretro cover art URL
+                const encodedTitle = encodeURIComponent(gameTitle);
+                const boxartUrl = systemData.system 
+                  ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` 
+                  : '';
+
+                const cardHtml = `
+                  <div class="game-card" onclick="launchGame('${systemKey}', '${romPath}', '${gameTitle}')">
+                    <div class="game-thumb">
+                      ${boxartUrl ? `<img src="${boxartUrl}" alt="${gameTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}
+                    </div>
+                    <h3>${gameTitle}</h3>
+                    <p>Click to play!</p>
+                  </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', cardHtml);
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Error loading library:", err);
+        container.innerHTML = `<div id="loading-games-msg">Failed to scan 'roms' folder. Check GITHUB_USERNAME and GITHUB_REPO!</div>`;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
   </script>
 
   <!-- EMULATOR SCRIPT -->
