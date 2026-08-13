@@ -310,14 +310,61 @@
 
   <!-- POPUP EMULATOR PLAYER -->
   <div id="player-modal" class="modal">
-    <div class="modal-header">
-      <h2 id="modal-title">Loading Game...</h2>
-      <button class="close-btn" onclick="closeGame()">✕ Close</button>
-    </div>
-    <div class="emulator-container">
-      <div id="game"></div>
-    </div>
+  <div class="modal-header">
+    <h2 id="modal-title">Loading Game...</h2>
+    <button class="close-btn" onclick="closeGame()">✕ Close</button>
   </div>
+  <div class="emulator-container">
+    <div id="game"></div>
+  </div>
+</div>
+
+<script>
+  async function launchGame(core, romPath, title) {
+    window.currentGameTitle = title;
+    
+    // 1. Show the modal
+    const modal = document.getElementById('player-modal');
+    document.getElementById('modal-title').innerText = title;
+    modal.classList.add('active');
+
+    // 2. Clear any previously loaded emulator
+    const container = document.getElementById('game');
+    container.innerHTML = '';
+
+    // 3. Set EmulatorJS global variables
+    window.EJS_player = '#game';
+    window.EJS_core = core;
+    window.EJS_gameUrl = romPath;
+    window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+
+    // Handle Cloud Save Loading
+    if (window.loadSaveFromCloud) {
+      const cloudSave = await window.loadSaveFromCloud();
+      if (cloudSave) {
+        window.EJS_loadStateURL = URL.createObjectURL(cloudSave);
+      }
+    }
+
+    // Handle Cloud Save Syncing
+    window.EJS_onSaveState = function(data) {
+      if (window.syncSaveToCloud) {
+        const blob = new Blob([data.state], { type: 'application/octet-stream' });
+        window.syncSaveToCloud(blob);
+      }
+    };
+
+    // 4. Dynamically inject the EmulatorJS script tag
+    const script = document.createElement('script');
+    script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+    container.appendChild(script);
+  }
+
+  function closeGame() {
+    document.getElementById('player-modal').classList.remove('active');
+    document.getElementById('game').innerHTML = '';
+  }
+</script>
 
   <!-- CONFIGURATION -->
   <script>
