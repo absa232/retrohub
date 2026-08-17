@@ -1,0 +1,22 @@
+{
+  "id": "retrohub-roms-snes",
+  "system": "snes",
+  "core": "snes",
+  "name": "SUPER NINTENDO",
+  "emoji": "🎮",
+  "thumbnailSystem": "Nintendo - Super Nintendo Entertainment System",
+  "games": [
+    {
+      "title": "Final Fight 2",
+      "filename": "Final Fight 2.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-snes/Final%20Fight%202.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/Nintendo%20-%20Super%20Nintendo%20Entertainment%20System/Named_Titles/Final%20Fight%202%20(USA).png"
+    },
+    {
+      "title": "X-Men - Mutant Apocalypse",
+      "filename": "X-Men - Mutant Apocalypse.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-snes/X-Men%20-%20Mutant%20Apocalypse.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/Nintendo%20-%20Super%20Nintendo%20Entertainment%20System/Named_Titles/X-Men%20-%20Mutant%20Apocalypse%20(USA).png"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "retrohub-roms-gba",
+  "system": "gba",
+  "core": "gba",
+  "name": "GAME BOY ADVANCE",
+  "emoji": "🎮",
+  "thumbnailSystem": "Nintendo - Game Boy Advance",
+  "games": [
+    {
+      "title": "Lady Sia",
+      "filename": "Lady Sia.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-gba/Lady%20Sia.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy%20Advance/Named_Titles/Lady%20Sia%20(USA)%20(En,Fr,De,Es,It,Nl).png"
+    },
+    {
+      "title": "Scurge - Hive",
+      "filename": "Scurge - Hive.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-gba/Scurge%20-%20Hive.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/Nintendo%20-%20Game%20Boy%20Advance/Named_Titles/Scurge%20-%20Hive%20(USA)%20(En,Fr,Es).png"
+    }
+  ]
+}

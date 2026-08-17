@@ -1,0 +1,22 @@
+{
+  "id": "retrohub-roms-neogeo",
+  "system": "neogeo",
+  "core": "fba",
+  "name": "NEO GEO",
+  "emoji": "🎮",
+  "thumbnailSystem": "SNK - Neo Geo",
+  "games": [
+    {
+      "title": "Blazing Star",
+      "filename": "blazstar.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-neogeo/blazstar.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/FBNeo%20-%20Arcade%20Games/Named_Titles/Blazing%20Star.png"
+    },
+    {
+      "title": "Metal Slug X",
+      "filename": "mslugx.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-neogeo/mslugx.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/FBNeo%20-%20Arcade%20Games/Named_Titles/Metal%20Slug%20X%20-%20Super%20Vehicle-001%20(NGM-2500%20~%20NGH-2500).png"
+    }
+  ]
+}

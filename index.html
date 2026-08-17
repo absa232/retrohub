@@ -203,6 +203,11 @@
       max-width: 1100px;
       margin: 0 auto;
       padding: 40px 20px;
+      display: block;
+    }
+
+    .dashboard.hidden {
+      display: none;
     }
 
     header {
@@ -467,6 +472,19 @@
     window.currentGameTitle = "";
     window.cloudSaveEnabled = true;
 
+    function getLocalAvatarDataUri(name = 'Guest') {
+      const initials = (name || 'G').trim().charAt(0).toUpperCase();
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+          <rect width="80" height="80" rx="40" fill="#ff8ba7"/>
+          <circle cx="40" cy="30" r="14" fill="#fff" opacity="0.9"/>
+          <path d="M22 62c4-10 14-16 18-16s14 6 18 16" fill="#fff" opacity="0.9"/>
+          <text x="40" y="44" text-anchor="middle" font-size="20" font-family="Segoe UI, Arial, sans-serif" fill="#1f1e2e" font-weight="700">${initials}</text>
+        </svg>
+      `;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
     function showWelcomeLoadingState() {
       const btn = document.getElementById('welcome-btn');
       const spinner = document.getElementById('welcome-spinner');
@@ -503,12 +521,36 @@
       if (btn) btn.disabled = false;
     }
 
-    // Show initial loading state BEFORE auth check
+    // Show initial loading state BEFORE auth check and keep the dashboard hidden until auth confirms a user.
+    document.querySelector('.dashboard')?.classList.add('hidden');
     document.getElementById('landing-screen').classList.remove('hidden');
     showWelcomeLoadingState();
 
+    function setAuthScreens(isAuthenticated) {
+      const landing = document.getElementById('landing-screen');
+      const dashboard = document.querySelector('.dashboard');
+      if (landing) {
+        landing.classList.toggle('hidden', !!isAuthenticated);
+      }
+      if (dashboard) {
+        dashboard.classList.toggle('hidden', !isAuthenticated);
+      }
+      
+      // Load games library when transitioning to authenticated state
+      if (isAuthenticated && typeof fetchArcadeLibrary === 'function') {
+        console.log('AUTH_TRANSITION: Loading arcade library');
+        fetchArcadeLibrary();
+      }
+    }
+
     function updateUserUI(user) {
       window.currentUser = user || null;
+      if (user) {
+        localStorage.setItem('arcade_logged_in', '1');
+      } else {
+        localStorage.removeItem('arcade_logged_in');
+      }
+
       document.getElementById('user-greeting').innerText = user
         ? `Welcome back! Pick a game and let's play together!`
         : `Pick a game and let's play together!`;
@@ -520,37 +562,36 @@
         if (user.photoURL) {
           document.getElementById('user-avatar').src = user.photoURL;
         } else {
-          document.getElementById('user-avatar').src = 'https://via.placeholder.com/40';
+          document.getElementById('user-avatar').src = getLocalAvatarDataUri(user.displayName || 'Player');
         }
         document.getElementById('user-profile').classList.add('active');
       } else {
         document.getElementById('user-name').innerText = 'Guest Player';
-        document.getElementById('user-avatar').src = 'https://via.placeholder.com/40';
+        document.getElementById('user-avatar').src = getLocalAvatarDataUri('Guest');
         document.getElementById('user-profile').classList.add('active');
       }
+
+      setAuthScreens(!!user);
     }
 
     function enterArcadeWithoutLogin() {
       updateUserUI({
         displayName: 'Guest Player',
-        photoURL: 'https://via.placeholder.com/40'
+        photoURL: getLocalAvatarDataUri('Guest')
       });
     }
 
     window.loginAndEnter = async function() {
       const isLocalFile = location.protocol === 'file:';
 
+      // Already logged in: show dashboard when user clicks "Continue as"
       if (auth.currentUser) {
-        document.getElementById('landing-screen').classList.add('hidden');
         updateUserUI(auth.currentUser);
-        // Push dashboard URL when already logged in
-        window.history.pushState({}, '', '/dashboard');
         return;
       }
 
       if (isLocalFile) {
         enterArcadeWithoutLogin();
-        document.getElementById('landing-screen').classList.add('hidden');
         return;
       }
 
@@ -558,16 +599,13 @@
       showWelcomeLoadingState();
 
       try {
+        // Sign in with Google and automatically show dashboard on success
         const result = await signInWithPopup(auth, provider);
-        document.getElementById('landing-screen').classList.add('hidden');
         updateUserUI(result.user);
-        // Push dashboard URL after successful login
-        window.history.pushState({}, '', '/dashboard');
       } catch (error) {
-        // If user cancelled the popup, just close the modal and keep current session
+        // If user cancelled the popup, just restore the button state
         if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
           console.log('User cancelled login, keeping current session');
-          document.getElementById('landing-screen').classList.add('hidden');
           updateWelcomeButton(auth.currentUser); // Reset button to show current state
           return;
         }
@@ -575,66 +613,51 @@
         // Only switch to guest for actual authentication errors
         console.error("Authentication failed:", error);
         enterArcadeWithoutLogin();
-        document.getElementById('landing-screen').classList.add('hidden');
         updateWelcomeButton(null); // Reset button to sign in state
       }
     };
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        updateUserUI(user);
-        // Update button to show "Continue as [Name]" without loading spinner
+        // User is logged in - update UI and button, but keep welcome screen visible
+        // They must click "Continue as [Name]" to proceed to dashboard
+        window.currentUser = user || null;
         updateWelcomeButton(user);
-        // Show landing screen when user is detected
-        document.getElementById('landing-screen').classList.remove('hidden');
+        console.log('Existing user detected, showing Continue as button');
       } else if (location.protocol !== 'file:') {
-        updateUserUI(null);
-        // Update button to show "Sign in with Google" without loading spinner
+        // No user logged in - show Sign in button
+        window.currentUser = null;
         updateWelcomeButton(null);
-        // Show landing screen when no user
-        document.getElementById('landing-screen').classList.remove('hidden');
+        console.log('No user logged in, showing Sign in button');
       }
     });
 
-    // URL Router for dashboard and game play routes
+    // Minimal router for play routes only
     const router = () => {
       const path = window.location.pathname;
-      const isDashboard = path === '/dashboard';
+      const isLoggedIn = !!(window.currentUser || (window.auth && window.auth.currentUser));
       const isPlayRoute = path.startsWith('/play/');
-      
-      if (isDashboard) {
-        // Dashboard route: only show if logged in
-        if (window.auth.currentUser) {
-          document.getElementById('landing-screen').classList.add('hidden');
-          // Dashboard is already visible by default
-        } else {
-          document.getElementById('landing-screen').classList.remove('hidden');
+
+      if (isPlayRoute) {
+        if (!isLoggedIn) {
+          window.history.replaceState({}, '', '/');
+          return router();
         }
-      } else if (isPlayRoute) {
-        // Game play route: extract system and title from /play/{system}/{title}
+
         const pathParts = path.split('/');
         if (pathParts.length >= 4) {
           const system = pathParts[2];
           const encodedTitle = pathParts[3];
           const gameTitle = decodeURIComponent(encodedTitle);
-          
+
           console.log('ROUTE_PLAY_DETECTED', { system, gameTitle });
-          
-          // Hide landing screen and prepare to auto-load game
-          document.getElementById('landing-screen').classList.add('hidden');
-          
-          // Store for auto-load after library is fetched
+          setAuthScreens(true);
           window.__autoLoadGame = { system, gameTitle };
-        }
-      } else {
-        // Root route: show landing if not logged in, else show dashboard
-        if (window.auth.currentUser) {
-          document.getElementById('landing-screen').classList.add('hidden');
-        } else {
-          document.getElementById('landing-screen').classList.remove('hidden');
         }
       }
     };
+
+    window.router = router;
 
     // Handle browser back/forward buttons
     window.addEventListener('popstate', () => {
@@ -783,11 +806,13 @@
           console.log('CLOUD_SYNC_DISABLED: using local IndexedDB save only');
         }
       } catch (err) {
-        console.error('Local save failed:', err);
+        if (window.cloudSaveEnabled) {
+          console.error('Local save failed:', err);
+        }
       }
     };
 
-    // Background Firestore sync (disabled by default until Firebase is configured)
+    // Background Firestore sync is disabled by default to avoid noisy permission errors when rules are not configured.
     const syncToFirestoreAsync = async (gameTitle, saveBlob) => {
       if (!window.cloudSaveEnabled || !window.currentUser || !window.currentUser.uid) {
         return;
@@ -829,7 +854,9 @@
         await batch.commit();
         console.log('FIRESTORE_SYNC_COMPLETE');
       } catch (err) {
-        console.error('Firestore background sync failed:', err.message);
+        if (window.cloudSaveEnabled) {
+          console.error('Firestore background sync failed:', err.message);
+        }
       }
     };
 
@@ -883,23 +910,48 @@
         console.log('Cloud save loaded from Firestore!');
         return blob;
       } catch (err) {
-        console.error('Save load failed:', err);
+        if (window.cloudSaveEnabled) {
+          console.error('Save load failed:', err);
+        }
         return null;
       }
     };
   </script>
 
   <script>
-    // GitHub arcade scanner + unified emulator launcher + account helpers
-    const GITHUB_USERNAME = 'absa232';
-    const GITHUB_REPO = 'retrohub';
+    // Archive.org arcade scanner + unified emulator launcher + account helpers
+    const SUPPORTED_ARCHIVE_EXTENSIONS = [
+      '.zip', '.gba', '.sfc', '.smc', '.gen', '.md', '.smd', '.nes', '.n64', '.z64', '.bin', '.nds'
+    ];
 
     const SYSTEM_MAP = {
-      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'segaMD', name: 'SEGA MEGADRIVE', emoji: '🌀' },
-      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes', name: 'SUPER NINTENDO', emoji: '🎮' },
-      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'gba', name: 'GAME BOY ADVANCE', emoji: '🕹️' },
-      'n64': { system: 'Nintendo_-_Nintendo_64', core: 'n64', name: 'NINTENDO 64', emoji: '🏰' }
+      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'segaMD', name: 'SEGA MEGADRIVE', emoji: '🌀', thumbnailSystem: 'Sega - Mega Drive - Genesis' },
+      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes', name: 'SUPER NINTENDO', emoji: '🎮', thumbnailSystem: 'Nintendo - Super Nintendo Entertainment System' },
+      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'gba', name: 'GAME BOY ADVANCE', emoji: '🕹️', thumbnailSystem: 'Nintendo - Game Boy Advance' },
+      'n64': { system: 'Nintendo_-_Nintendo_64', core: 'n64', name: 'NINTENDO 64', emoji: '🏰', thumbnailSystem: 'Nintendo - Nintendo 64' }
     };
+
+    // Load categories from GitHub JSON
+    window.ARCHIVE_CATEGORIES = [];
+    window.categoriesLoaded = false;
+
+    async function loadCategoriesFromGitHub() {
+      try {
+        const indexUrl = 'https://raw.githubusercontent.com/absa232/retrohub/main/categories/index.json';
+        const response = await fetch(indexUrl, { cache: 'no-store' });
+        if (!response.ok) throw new Error('Failed to load categories index');
+        
+        const indexData = await response.json();
+        window.ARCHIVE_CATEGORIES = indexData.categories || [];
+        window.categoriesLoaded = true;
+        console.log('Categories loaded from GitHub:', window.ARCHIVE_CATEGORIES);
+        return window.ARCHIVE_CATEGORIES;
+      } catch (err) {
+        console.error('Failed to load categories from GitHub:', err);
+        window.categoriesLoaded = false;
+        return [];
+      }
+    }
 
     // Create a small dropdown for account actions inside the existing profile badge
     (function createProfileDropdown(){
@@ -951,158 +1003,177 @@
       try {
         if (window.auth && typeof window.auth.signOut === 'function') {
           await window.auth.signOut();
-          location.reload();
-        } else {
-          alert('Logout is not available.');
         }
+        localStorage.removeItem('arcade_logged_in');
+        window.currentUser = null;
+        window.history.replaceState({}, '', '/');
+        location.reload();
       } catch (err) {
         console.error('Logout failed', err);
       }
     }
 
-    // GitHub scanner to populate #games-container
+    // Proxy configuration for handling archive downloads and images
+    const ARCHIVE_PROXY_BASE = 'http://127.0.0.1:8001/proxy/archive';
+    const IMAGE_PROXY_BASE = 'http://127.0.0.1:8001/proxy/image';
+
+    async function fetchArchiveCategory(categoryInfo) {
+      const categoryId = categoryInfo.id || categoryInfo.file.replace('.json', '');
+      const systemKey = categoryInfo.system;
+      const categoryJsonFile = categoryInfo.file;
+      
+      // Load the category JSON from GitHub
+      const categoryUrl = `https://raw.githubusercontent.com/absa232/retrohub/main/categories/${categoryJsonFile}`;
+      const response = await fetch(categoryUrl, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Failed to load ${categoryId}. Please try again later.`);
+      }
+
+      const categoryData = await response.json();
+      const games = Array.isArray(categoryData.games) ? categoryData.games : [];
+      
+      const systemData = SYSTEM_MAP[systemKey] || {
+        system: null,
+        core: categoryData.core || systemKey,
+        name: categoryData.name || categoryId.toUpperCase(),
+        emoji: categoryData.emoji || '🎮'
+      };
+
+      return {
+        systemKey,
+        systemData,
+        games,
+        categoryId,
+        categoryData
+      };
+    }
+
     async function fetchArcadeLibrary() {
       const container = document.getElementById('games-container');
       if (!container) return;
 
-      const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms`;
-      try {
-        const response = await fetch(apiUrl);
-        if (!response.ok) {
-          if (response.status === 403) throw new Error('GitHub API rate limit reached. Please wait a few minutes and refresh.');
-          throw new Error(`Could not access 'roms' directory (${response.status}).`);
+      container.innerHTML = '';
+      window.__gamesIndex = {};
+      window.__gamesSlugIndex = {};
+
+      // Load categories from GitHub first
+      if (!window.categoriesLoaded) {
+        await loadCategoriesFromGitHub();
+      }
+
+      if (!window.ARCHIVE_CATEGORIES || !window.ARCHIVE_CATEGORIES.length) {
+        container.innerHTML = '<div id="loading-games-msg">No game categories have been configured yet.</div>';
+        return;
+      }
+
+      let totalGamesFound = 0;
+
+      for (const categoryInfo of window.ARCHIVE_CATEGORIES) {
+        const systemKey = categoryInfo.system || categoryInfo.id.split('-').pop();
+        const section = document.createElement('div');
+        section.className = 'category-section';
+        section.innerHTML = `
+          <h2 class="category-title">Loading ${categoryInfo.id || 'category'}...</h2>
+          <div class="games-grid" id="grid-${systemKey}"></div>
+        `;
+        container.appendChild(section);
+
+        try {
+          const { systemKey: sk, systemData, games, categoryData } = await fetchArchiveCategory(categoryInfo);
+
+          if (!games.length) {
+            section.querySelector('h2').textContent = categoryData.name || categoryInfo.id;
+            const emptyState = document.createElement('div');
+            emptyState.className = 'game-empty';
+            emptyState.textContent = 'This category is currently empty.';
+            section.querySelector(`#grid-${sk}`).appendChild(emptyState);
+            continue;
+          }
+
+          section.querySelector('h2').textContent = categoryData.name || categoryInfo.id;
+          const grid = section.querySelector(`#grid-${sk}`);
+
+          games.forEach(game => {
+            const gameTitle = game.title;
+            const romUrl = game.romUrl;
+            const boxartUrl = game.boxartUrl;
+            const launchCore = systemData.core || sk;
+            const gameIndexKey = `${sk}_${gameTitle}`;
+            const safeRomUrl = romUrl.replace(/'/g, "\\'");
+
+            window.__gamesIndex[gameIndexKey] = {
+              core: launchCore,
+              romPath: safeRomUrl,
+              title: gameTitle,
+              system: sk
+            };
+
+            const slugTitle = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+            const slugIndexKey = `${sk}_${slugTitle}`;
+            window.__gamesSlugIndex[slugIndexKey] = gameIndexKey;
+
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            card.setAttribute('onclick', `launchGameWithRoute('${launchCore}', '${sk}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
+            const thumbMarkup = boxartUrl
+              ? `<img src="${boxartUrl}" alt="${gameTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='${systemData.emoji || '🎮'}'; this.parentElement.style.fontSize='2.5rem';"/>`
+              : (systemData.emoji || '🎮');
+            card.innerHTML = `
+              <div class="game-thumb">${thumbMarkup}</div>
+              <h3>${gameTitle}</h3>
+              <p>Click to play!</p>
+            `;
+            grid.appendChild(card);
+            totalGamesFound += 1;
+          });
+        } catch (err) {
+          console.warn('Category load failed:', err);
+          const titleEl = section.querySelector('h2');
+          if (titleEl) titleEl.textContent = categoryInfo.id || 'Unknown Category';
+          const message = document.createElement('div');
+          message.className = 'game-empty';
+          message.textContent = err.message || 'This category is temporarily unavailable.';
+          section.querySelector(`#grid-${systemKey}`)?.appendChild(message);
         }
+      }
 
-        const folders = await response.json();
-        container.innerHTML = '';
-        let totalGamesFound = 0;
-        
-        // Initialize games index for auto-load lookups
-        window.__gamesIndex = {};
+      if (totalGamesFound === 0) {
+        container.innerHTML = '<div id="loading-games-msg">No games found in the configured categories.</div>';
+      }
 
-        for (const folder of folders) {
-          if (folder.type === 'dir') {
-            const systemKey = folder.name.toLowerCase();
-            const systemData = SYSTEM_MAP[systemKey] || { system: null, core: systemKey, name: folder.name.toUpperCase(), emoji: '🎮' };
+      if (window.__autoLoadGame) {
+        const { system, gameTitle } = window.__autoLoadGame;
+        const urlSlug = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const slugIndexKey = `${system}_${urlSlug}`;
 
-            const subfolderUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/roms/${folder.name}`;
-            const gamesResponse = await fetch(subfolderUrl);
-            if (!gamesResponse.ok) continue;
-
-            const files = await gamesResponse.json();
-
-            const romFiles = files.filter(f => f.type === 'file' && (
-              f.name.endsWith('.zip') || f.name.endsWith('.gen') || f.name.endsWith('.smd') || f.name.endsWith('.bin') || f.name.endsWith('.snes') || f.name.endsWith('.gba') || f.name.endsWith('.z64') || f.name.endsWith('.n64')
-            ));
-
-            if (romFiles.length > 0) {
-              totalGamesFound += romFiles.length;
-
-              const section = document.createElement('div');
-              section.className = 'category-section';
-              section.innerHTML = `
-                <h2 class="category-title">${systemData.name}</h2>
-                <div class="games-grid" id="grid-${systemKey}"></div>
-              `;
-              container.appendChild(section);
-
-              const grid = section.querySelector(`#grid-${systemKey}`);
-
-              romFiles.forEach(file => {
-                const gameTitle = file.name.replace(/\.[^/.]+$/, "");
-                const romPath = `roms/${folder.name}/${file.name}`;
-                const rawRomUrl = file.download_url || `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/main/${romPath}`;
-                const safeRomUrl = rawRomUrl.replace(/'/g, "\\'");
-                const encodedTitle = encodeURIComponent(gameTitle);
-                const boxartUrl = systemData.system ? `https://cdn.jsdelivr.net/gh/libretro/libretro-thumbnails@master/${systemData.system}/Named_Boxarts/${encodedTitle}.png` : '';
-
-                const launchCore = systemData.core || systemKey;
-                
-                // Store game info in index for auto-load lookups (use original unescaped gameTitle)
-                const gameIndexKey = `${systemKey}_${gameTitle}`;
-                window.__gamesIndex[gameIndexKey] = {
-                  core: launchCore,
-                  romPath: safeRomUrl,
-                  title: gameTitle,
-                  system: systemKey
-                };
-                
-                // Also create a slug-based index for URL matching (case-insensitive, handle special chars)
-                const slugTitle = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                const slugIndexKey = `${systemKey}_${slugTitle}`;
-                if (!window.__gamesSlugIndex) window.__gamesSlugIndex = {};
-                window.__gamesSlugIndex[slugIndexKey] = gameIndexKey; // Maps slug back to original key
-                
-                const card = document.createElement('div');
-                card.className = 'game-card';
-                // Use JSON.stringify to properly escape gameTitle for JavaScript string, preventing issues with quotes/apostrophes
-                card.setAttribute('onclick', `launchGameWithRoute('${launchCore}', '${systemKey}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
-                card.innerHTML = `
-                  <div class="game-thumb">${boxartUrl ? `<img src="${boxartUrl}" alt="${gameTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.outerHTML='${systemData.emoji}'">` : systemData.emoji}</div>
-                  <h3>${gameTitle}</h3>
-                  <p>Click to play!</p>
-                `;
-                grid.appendChild(card);
-              });
-            }
+        let gameIndexKey = null;
+        if (window.__gamesSlugIndex && window.__gamesSlugIndex[slugIndexKey]) {
+          gameIndexKey = window.__gamesSlugIndex[slugIndexKey];
+        } else {
+          gameIndexKey = `${system}_${gameTitle}`;
+          if (!window.__gamesIndex[gameIndexKey]) {
+            gameIndexKey = null;
           }
         }
 
-        if (totalGamesFound === 0) {
-          container.innerHTML = `<div id="loading-games-msg">No supported ROM files found inside your 'roms' folder.</div>`;
-        }
-        
-        // Check if there's a pending auto-load game to launch
-        if (window.__autoLoadGame) {
-          const { system, gameTitle } = window.__autoLoadGame;
-          console.log('AUTO_LOAD_PENDING', { system, gameTitle });
-          
-          // Create slug from URL game title for matching
-          const urlSlug = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-          const slugIndexKey = `${system}_${urlSlug}`;
-          
-          // Try slug-based lookup first (for URLs like /play/snes/super-mario-world)
-          let gameIndexKey = null;
-          if (window.__gamesSlugIndex && window.__gamesSlugIndex[slugIndexKey]) {
-            gameIndexKey = window.__gamesSlugIndex[slugIndexKey];
-            console.log('AUTO_LOAD_SLUG_MATCH', { urlSlug, gameIndexKey });
-          } else {
-            // Fallback to exact match (for backward compatibility)
-            gameIndexKey = `${system}_${gameTitle}`;
-            if (!window.__gamesIndex[gameIndexKey]) {
-              gameIndexKey = null;
-            }
-          }
-          
-          const gameInfo = gameIndexKey ? window.__gamesIndex[gameIndexKey] : null;
-          
-          if (gameInfo) {
-            console.log('AUTO_LOAD_FOUND', gameInfo);
-            // Wait a moment to ensure UI is ready, then launch
-            setTimeout(() => {
-              launchGame(gameInfo.core, gameInfo.romPath, gameInfo.title);
-            }, 500);
-          } else {
-            console.warn('AUTO_LOAD_GAME_NOT_FOUND', { system, gameTitle, urlSlug, slugIndexKey, availableKeys: Object.keys(window.__gamesIndex) });
-          }
-          
-          // Clear the pending auto-load
-          window.__autoLoadGame = null;
+        const gameInfo = gameIndexKey ? window.__gamesIndex[gameIndexKey] : null;
+
+        if (gameInfo) {
+          setTimeout(() => {
+            launchGame(gameInfo.core, gameInfo.romPath, gameInfo.title);
+          }, 500);
+        } else {
+          console.warn('AUTO_LOAD_GAME_NOT_FOUND', { system, gameTitle, slugIndexKey, availableKeys: Object.keys(window.__gamesIndex) });
         }
 
-      } catch (err) {
-        console.error('Error scanning library:', err);
-        container.innerHTML = `<div id="loading-games-msg">⚠️ ${err.message}</div>`;
+        window.__autoLoadGame = null;
       }
     }
 
     // Wrapper function to handle URL routing before launching game
     async function launchGameWithRoute(core, system, romPath, title) {
-      // Push the play route URL
       const encodedTitle = encodeURIComponent(title);
       window.history.pushState({}, '', `/play/${system}/${encodedTitle}`);
-      
-      // Launch the game
       await launchGame(core, romPath, title);
     }
 
@@ -1120,17 +1191,40 @@
         gameRoot.innerHTML = '';
       }
 
-      const normalizedRomUrl = /^https?:\/\//i.test(romPath)
-        ? romPath
-        : `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/main/${romPath}`;
+      let normalizedRomUrl = romPath;
+      if (!/^https?:\/\//i.test(romPath)) {
+        normalizedRomUrl = `${ARCHIVE_PROXY_BASE}/${romPath}`;
+      }
 
+      let blobUrl = null;
+      try {
+        if (/^https?:\/\//i.test(normalizedRomUrl)) {
+          const response = await fetch(normalizedRomUrl, { mode: 'cors' });
+          if (!response.ok) throw new Error(`ROM request failed: ${response.status}`);
+          const blob = await response.blob();
+          blobUrl = URL.createObjectURL(blob);
+        }
+      } catch (err) {
+        console.warn('REMOTE_ROM_FETCH_FALLBACK_FAILED', err?.message || err);
+        blobUrl = null;
+      }
+
+      const safeGameId = (title || 'arcade-game')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || 'arcade-game';
+
+      window.EJS_gameID = `${safeGameId}-${Date.now()}`;
+      window.EJS_gameid = window.EJS_gameID;
       window.EJS_player = '#game';
       window.EJS_core = mappedCore;
-      window.EJS_gameUrl = normalizedRomUrl;
+      window.EJS_gameUrl = blobUrl || normalizedRomUrl;
       window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
       window.EJS_autosave = 1;
       window.EJS_autoSave = 1;
       window.EJS_onAudioCallback = null;
+      window.EJS_language = 'en-US';
+      window.EJS_disableAutoLang = true;
       // Keep the normal EmulatorJS menu visible for save/load controls, while leaving touch controls off.
       window.EJS_hideMenubar = 0;
       window.EJS_disableMobileControls = 1;
@@ -1213,20 +1307,20 @@
         }
       };
 
-      // Run a direct save from the emulator's state every 60s. This avoids the visible menu-triggered save path.
-      console.log('Emulator autosave enabled: direct 60s local save cycle, no UI click path used');
+      // Run a direct save from the emulator's state every 2 minutes. This avoids the visible menu-triggered save path.
+      console.log('Emulator autosave enabled: direct 120s local save cycle, no UI click path used');
+
+      suppressKnownEjsWarnings();
 
       const existingLoader = document.querySelector('script[src="https://cdn.emulatorjs.org/stable/data/loader.js"]');
-      if (existingLoader) {
-        existingLoader.remove();
+      if (!existingLoader) {
+        const ejsScript = document.createElement('script');
+        ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+        ejsScript.async = false;
+        document.body.appendChild(ejsScript);
       }
 
-      const ejsScript = document.createElement('script');
-      ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-      ejsScript.async = false;
-      document.body.appendChild(ejsScript);
-
-      const patchEjsResizeGuard = () => {
+      function patchEjsResizeGuard() {
         if (!window.EmulatorJS || window.__ejsResizeGuardInstalled) {
           return;
         }
@@ -1239,9 +1333,19 @@
 
           window.EmulatorJS.prototype.handleResize = function(...args) {
             try {
-              if (!this || !this.game || !this.game.parentElement || !this.elements || !this.elements.parent) {
+              if (!this) return;
+
+              const mountNode = this?.elements?.parent || this?.game?.parentElement || this?.canvas?.parentElement;
+              const activeNode = this?.game || this?.canvas || this?.elements?.canvas;
+
+              if (!mountNode || !mountNode.classList) {
                 return;
               }
+
+              if (!activeNode || !activeNode.parentElement) {
+                return;
+              }
+
               return originalHandleResize.apply(this, args);
             } catch (error) {
               console.warn('EJS_RESIZE_GUARD_BLOCKED', error?.message || error);
@@ -1253,9 +1357,83 @@
         } catch (err) {
           console.warn('EJS_RESIZE_PATCH_FAILED', err?.message || err);
         }
-      };
+      }
 
-      setTimeout(patchEjsResizeGuard, 500);
+      function patchEjsGameIdGuard() {
+        if (!window.EmulatorJS || window.__ejsGameIdGuardInstalled) {
+          return;
+        }
+
+        try {
+          const proto = window.EmulatorJS.prototype;
+          proto.getLocalStorageKey = function() {
+            if (!this || !this.config) {
+              return 'ejs-default-settings';
+            }
+
+            const fallbackGameId = window.EJS_gameID || `arcade-${Date.now()}`;
+            if (!this.config.gameId || this.config.gameId === 'null') {
+              this.config.gameId = fallbackGameId;
+            }
+
+            const gameKey = String(this.config.gameId || fallbackGameId)
+              .replace(/[^a-zA-Z0-9_-]+/g, '-')
+              .replace(/^-+|-+$/g, '') || 'arcade';
+
+            const gameUrl = this.config.gameUrl ? String(this.config.gameUrl) : 'arcade';
+            const safeUrl = gameUrl.replace(/[^a-zA-Z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'game';
+            return `ejs-${gameKey}-${safeUrl}`;
+          };
+
+          window.__ejsGameIdGuardInstalled = true;
+        } catch (err) {
+          console.warn('EJS_GAMEID_PATCH_FAILED', err?.message || err);
+        }
+      }
+
+      function suppressKnownEjsWarnings() {
+        if (window.__arcadeEjsWarningsSuppressed) return;
+
+        const originalLog = console.log.bind(console);
+        const originalWarn = console.warn.bind(console);
+        const originalInfo = console.info.bind(console);
+
+        const shouldSuppressMessage = (...args) => {
+          const msg = args.map(arg => String(arg)).join(' ');
+          return /AUTO_SAVE_SKIPPED|gameId \(EJS_gameID\) is not set|Translation not found for /.test(msg);
+        };
+
+        console.log = (...args) => {
+          if (shouldSuppressMessage(...args)) return;
+          originalLog(...args);
+        };
+
+        console.warn = (...args) => {
+          if (shouldSuppressMessage(...args)) return;
+          originalWarn(...args);
+        };
+
+        console.info = (...args) => {
+          if (shouldSuppressMessage(...args)) return;
+          originalInfo(...args);
+        };
+
+        window.__arcadeEjsWarningsSuppressed = true;
+      }
+
+      function reapplyResizeGuard() {
+        if (!window.__ejsResizeGuardInstalled) {
+          patchEjsResizeGuard();
+        }
+        if (!window.__ejsGameIdGuardInstalled) {
+          patchEjsGameIdGuard();
+        }
+        suppressKnownEjsWarnings();
+      }
+
+      setTimeout(reapplyResizeGuard, 500);
+      setTimeout(reapplyResizeGuard, 1200);
+      setTimeout(reapplyResizeGuard, 2200);
 
       const injectedLoadState = async () => {
         if (!window.__loadedSaveBlob || !window.EJS_emulator) {
@@ -1292,7 +1470,7 @@
         // Start autosave interval
         window.currentAutoSaveInterval = setInterval(() => {
           triggerNativeAutosave();
-        }, 60000);
+        }, 120000);
       }, 2000);
     }
 
@@ -1359,14 +1537,24 @@
 
         // Clear current game title (AFTER all save operations complete)
         window.currentGameTitle = "";
-        
+
+        if (window.location.pathname.startsWith('/play/')) {
+          window.history.pushState({}, '', '/');
+          if (typeof window.router === 'function') {
+            window.router();
+          }
+        }
+
         console.log('GAME_CLOSED_SUCCESSFULLY');
       };
 
       performFinalSave();
     }
 
-    window.addEventListener('DOMContentLoaded', fetchArcadeLibrary);
+    window.addEventListener('DOMContentLoaded', () => {
+      // Games library will be loaded when user authenticates via setAuthScreens()
+      console.log('Page loaded, waiting for user authentication');
+    });
   </script>
 </body>
 </html>

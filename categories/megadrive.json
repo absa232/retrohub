@@ -1,0 +1,17 @@
+{
+  "id": "retrohub-roms-megadrive_202608",
+  "system": "megadrive",
+  "core": "segaMD",
+  "name": "SEGA MEGADRIVE",
+  "emoji": "🎮",
+  "thumbnailSystem": "Sega - Mega Drive - Genesis",
+  "games": [
+    {
+      "title": "Tiny Toon Adventures - Buster's Hidden Treasure",
+      "filename": "Tiny Toon Adventures - Buster's Hidden Treasure.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-megadrive_202608/Tiny%20Toon%20Adventures%20-%20Buster%27s%20Hidden%20Treasure.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/Sega%20-%20Mega%20Drive%20-%20Genesis/Named_Titles/Tiny%20Toon%20Adventures%20-%20Buster's%20Hidden%20Treasure%20(USA).png"
+    },
+   
+  ]
+}
