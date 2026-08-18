@@ -523,6 +523,15 @@
     window.__arcadeLibraryLoading = false;
     window.__arcadeLibraryLoaded = false;
     window.__launchLockKey = null;
+    window.__guestMode = false;
+
+    function forceGuestSession() {
+      window.__guestMode = true;
+      updateUserUI({
+        displayName: 'Guest Player',
+        photoURL: getLocalAvatarDataUri('Guest')
+      });
+    }
 
     function getLocalAvatarDataUri(name = 'Guest') {
       const initials = (name || 'G').trim().charAt(0).toUpperCase();
@@ -662,6 +671,14 @@
         if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
           console.log('User cancelled login, keeping current session');
           updateWelcomeButton(auth.currentUser); // Reset button to show current state
+          return;
+        }
+
+        // Netlify / custom domains can fail Firebase auth if the domain is not authorized.
+        // Fall back to a guest session so the app remains usable while the correct domain is added.
+        if (error && (error.code === 'auth/unauthorized-domain' || error.code === 'auth/invalid-domain')) {
+          console.warn('Firebase domain is not authorized for this deployment. Continuing in guest mode.');
+          forceGuestSession();
           return;
         }
         
@@ -1256,7 +1273,9 @@
     function resolvePlayableRomUrl(romPath) {
       if (!romPath) return romPath;
 
-      const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+      const hostname = (window.location.hostname || '').toLowerCase();
+      const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(hostname);
+      const isNetlifyHost = hostname.includes('netlify.app') || hostname.includes('netlify.com');
       const proxyBaseUrl = isLocalhost ? (window.location.origin || 'http://127.0.0.1:8001') : null;
 
       try {
@@ -1272,7 +1291,14 @@
             if (proxyBaseUrl) {
               return `${proxyBaseUrl}/proxy/archive/${collectionId}/${encodeURIComponent(fileName)}`;
             }
+            if (isNetlifyHost) {
+              return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
+            }
             return romPath;
+          }
+
+          if (isNetlifyHost) {
+            return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
           }
         }
 
@@ -1280,6 +1306,9 @@
       } catch (err) {
         if (!/^https?:\/\//i.test(romPath) && proxyBaseUrl) {
           return `${proxyBaseUrl}/proxy/archive/${encodeURIComponent(romPath)}`;
+        }
+        if (isNetlifyHost && /^https?:\/\//i.test(romPath)) {
+          return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
         }
         return romPath;
       }
@@ -1320,8 +1349,20 @@
 
       // Keep the EmulatorJS loader singleton intact. Deleting EJS_STORAGE / EmulatorJS breaks
       // the active runtime and creates the null DOM resize crash when the next game boots.
-      window.EJS_emulator = null;
-      window.EJS_loadStateURL = null;
+      // We still remove the stale runtime data and mounted DOM nodes so the next boot starts from a clean slate.
+      const emulatorGlobalsToReset = [
+        'EJS_emulator', 'EJS_loadStateURL', 'EJS_gameID', 'EJS_gameid', 'EJS_gameUrl',
+        'EJS_core', 'EJS_player', 'EJS_pathtodata'
+      ];
+
+      emulatorGlobalsToReset.forEach((key) => {
+        try {
+          window[key] = null;
+        } catch (e) {
+          console.warn('Reset emulator global failed:', key, e);
+        }
+      });
+
       window.__loadedSaveBlob = null;
       window.__arcadeSaveHook = null;
       window.__launchLockKey = null;
@@ -1330,6 +1371,7 @@
 
       const gameNode = document.getElementById('game');
       if (gameNode) {
+        gameNode.querySelectorAll('canvas, iframe, script, audio, video, object, embed').forEach((node) => node.remove());
         gameNode.innerHTML = '';
       }
     }
@@ -1356,9 +1398,11 @@
       document.getElementById('player-modal').classList.add('active');
 
       const gameRoot = document.getElementById('game');
-      if (gameRoot) {
-        gameRoot.innerHTML = '';
+      if (!gameRoot) {
+        console.error('Game container not found for new launch.');
+        return;
       }
+      gameRoot.innerHTML = '';
 
       const normalizedRomUrl = resolvePlayableRomUrl(romPath);
 
@@ -1510,14 +1554,14 @@
             try {
               if (!this) return;
 
-              const mountNode = this?.elements?.parent || this?.game?.parentElement || this?.canvas?.parentElement;
-              const activeNode = this?.game || this?.canvas || this?.elements?.canvas;
+              const mountNode = this?.elements?.parent || this?.game?.parentElement || this?.canvas?.parentElement || document.getElementById('game');
+              const activeNode = this?.game || this?.canvas || this?.elements?.canvas || document.getElementById('game');
 
               if (!mountNode || !mountNode.classList) {
                 return;
               }
 
-              if (!activeNode || !activeNode.parentElement) {
+              if (!activeNode || !activeNode.parentElement || !document.body.contains(activeNode)) {
                 return;
               }
 
