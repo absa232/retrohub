@@ -142,6 +142,8 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    window.firestoreDoc = doc;
+    window.firestoreGetDoc = getDoc;
 
     window.firebaseApp = app;
     window.firebaseAuth = auth;
@@ -230,6 +232,45 @@
     const SAVE_CHUNK_SIZE = 700000;
     let pendingSavePromise = Promise.resolve();
 
+    function openLocalSaveDb() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open('RetroHubLocalSaves', 1);
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = () => {
+          request.result.createObjectStore('states', { keyPath: 'gameTitle' });
+        };
+      });
+    }
+
+    async function saveStateLocally(gameTitle, state) {
+      const database = await openLocalSaveDb();
+      await new Promise((resolve, reject) => {
+        const transaction = database.transaction('states', 'readwrite');
+        transaction.objectStore('states').put({
+          gameTitle,
+          state,
+          timestamp: new Date().toISOString()
+        });
+        transaction.oncomplete = resolve;
+        transaction.onerror = () => reject(transaction.error);
+      });
+      database.close();
+    }
+
+    async function loadStateLocally(gameTitle) {
+      const database = await openLocalSaveDb();
+      const result = await new Promise((resolve, reject) => {
+        const request = database.transaction('states', 'readonly')
+          .objectStore('states')
+          .get(gameTitle);
+        request.onsuccess = () => resolve(request.result?.state || null);
+        request.onerror = () => reject(request.error);
+      });
+      database.close();
+      return result;
+    }
+
     // Save handler
     window.syncSaveToCloud = async (gameState) => {
       if (!window.currentUser || !window.currentGameTitle) return;
@@ -239,6 +280,9 @@
         if (typeof serializedState !== 'string') {
           serializedState = JSON.stringify(serializedState);
         }
+
+        // The local copy is written first so closing or reopening is fast and resilient.
+        await saveStateLocally(window.currentGameTitle, serializedState);
 
         const saveRef = doc(db, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
         const chunks = [];
@@ -277,6 +321,26 @@
       } catch (err) {
         console.warn('Final save failed:', err?.message || err);
         return false;
+      }
+    };
+
+    window.saveCurrentGameStateLocally = async () => {
+      const emulator = window.EJS_emulator;
+      const getState = emulator?.gameManager?.getState;
+      if (!getState || !window.currentGameTitle) return null;
+
+      try {
+        const state = getState.call(emulator.gameManager);
+        if (state == null) return null;
+        let serializedState = await serializeSaveState(state);
+        if (typeof serializedState !== 'string') {
+          serializedState = JSON.stringify(serializedState);
+        }
+        await saveStateLocally(window.currentGameTitle, serializedState);
+        return state;
+      } catch (err) {
+        console.warn('Local save failed:', err?.message || err);
+        return null;
       }
     };
 
@@ -363,35 +427,46 @@
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
           try {
-            let saveRef = doc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
-            let saveSnap = await getDoc(saveRef);
+            let savedState = await loadStateLocally(window.currentGameTitle);
+            let saveData = { stateFormat: 'chunked-text-v1' };
 
-            // Read saves created before the chunked save path was introduced.
-            if (!saveSnap.exists()) {
-              saveRef = doc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
-              saveSnap = await getDoc(saveRef);
-            }
+            if (savedState) {
+              console.log('Loaded saved game state from local storage');
+            } else {
+              let saveRef = window.firestoreDoc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
+              let saveSnap = await window.firestoreGetDoc(saveRef);
 
-            if (saveSnap.exists()) {
-              const saveData = saveSnap.data();
-              let savedState = saveData.state;
-
-              if (saveData.stateFormat === 'chunked-text-v1' && saveData.chunkCount) {
-                savedState = '';
-                for (let index = 0; index < saveData.chunkCount; index++) {
-                  const chunkSnap = await getDoc(doc(saveRef, 'chunks', String(index)));
-                  if (!chunkSnap.exists()) throw new Error(`Missing save chunk ${index}`);
-                  savedState += chunkSnap.data().data || '';
-                }
+              // Read saves created before the chunked save path was introduced.
+              if (!saveSnap.exists()) {
+                saveRef = window.firestoreDoc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
+                saveSnap = await window.firestoreGetDoc(saveRef);
               }
 
-              if (savedState) {
-                if (saveData.stateFormat === 'chunked-text-v1') {
-                  window.__pendingSavedStateBytes = base64ToBytes(savedState);
-                } else {
-                  window.EJS_loadStateURL = savedState;
+              if (saveSnap.exists()) {
+                saveData = saveSnap.data();
+                savedState = saveData.state;
+
+                if (saveData.stateFormat === 'chunked-text-v1' && saveData.chunkCount) {
+                  savedState = '';
+                  for (let index = 0; index < saveData.chunkCount; index++) {
+                    const chunkSnap = await window.firestoreGetDoc(window.firestoreDoc(saveRef, 'chunks', String(index)));
+                    if (!chunkSnap.exists()) throw new Error(`Missing save chunk ${index}`);
+                    savedState += chunkSnap.data().data || '';
+                  }
                 }
-                console.log('Loaded saved game state');
+
+                if (savedState) {
+                  await saveStateLocally(window.currentGameTitle, savedState);
+                  console.log('Loaded saved game state from Firestore and cached locally');
+                }
+              }
+            }
+
+            if (savedState) {
+              if (saveData.stateFormat === 'chunked-text-v1') {
+                window.__pendingSavedStateBytes = base64ToBytes(savedState);
+              } else {
+                window.EJS_loadStateURL = savedState;
               }
             }
           } catch (err) {
@@ -467,8 +542,11 @@
         clearInterval(window.currentAutoSaveInterval);
       }
 
-      await window.saveCurrentGameState();
-      await pendingSavePromise;
+      const state = await window.saveCurrentGameStateLocally();
+      if (state != null && window.currentUser) {
+        // Start cloud sync after the local save; local data is already safe before closing.
+        pendingSavePromise = window.syncSaveToCloud(state);
+      }
 
       // Destroy emulator if it exists
       if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
@@ -479,7 +557,7 @@
         }
       }
 
-      // Return to dashboard page after closing the game
+      // Return immediately after the local save; the cloud request continues in the background.
       window.location.assign('dashboard.html');
     }
 
