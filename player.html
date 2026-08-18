@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playing Game</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Arial', sans-serif; background: #000; overflow: hidden; }
+    
+    #game-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    #game {
+      flex: 1;
+      background: #000;
+      position: relative;
+    }
+    
+    .top-bar {
+      background: rgba(0, 0, 0, 0.9);
+      color: #fff;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+      border-bottom: 1px solid #333;
+    }
+    
+    .game-title {
+      flex: 1;
+      font-weight: bold;
+    }
+    
+    .close-btn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    
+    .close-btn:hover {
+      background: #c0392b;
+    }
+    
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #fff;
+      text-align: center;
+      z-index: 10;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #fff;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error-msg {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(231, 76, 60, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      z-index: 20;
+      max-width: 80%;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <div class="top-bar">
+      <div class="game-title" id="game-title">Loading...</div>
+      <button class="close-btn" onclick="closeGame()">Close & Return</button>
+    </div>
+    <div id="game"></div>
+    <div class="loading" id="loading-indicator">
+      <div class="loading-spinner"></div>
+      <div>Loading game...</div>
+    </div>
+    <div class="error-msg" id="error-msg" style="display: none;"></div>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCLfvZ55e5Jz_mCKJC9LSLNcqw6uOjrGWs",
+      authDomain: "our-arcade-c417d.firebaseapp.com",
+      projectId: "our-arcade-c417d",
+      storageBucket: "our-arcade-c417d.appspot.com",
+      messagingSenderId: "816265903876",
+      appId: "1:816265903876:web:0b9ee75c897d69e7e65c24"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.firebaseApp = app;
+    window.firebaseAuth = auth;
+    window.firebaseDb = db;
+    window.currentUser = null;
+
+    onAuthStateChanged(auth, (user) => {
+      window.currentUser = user;
+      if (user) {
+        console.log('Player page: User logged in as', user.uid);
+      } else {
+        console.log('Player page: No user logged in');
+      }
+    });
+
+    // Save handler
+    window.syncSaveToCloud = async (gameState) => {
+      if (!window.currentUser || !window.currentGameTitle) return;
+      
+      try {
+        const saveRef = doc(db, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
+        await setDoc(saveRef, {
+          state: gameState,
+          timestamp: new Date().toISOString()
+        }, { merge: true });
+      } catch (err) {
+        console.warn('Save to cloud failed:', err?.message || err);
+      }
+    };
+
+    window.suppressKnownEjsWarnings = () => {
+      const oldWarn = console.warn;
+      const patterns = [/Failed to execute 'getImageData'/i, /OffscreenCanvas/i];
+      console.warn = function(...args) {
+        const text = args[0]?.toString?.() || '';
+        if (!patterns.some(p => p.test(text))) {
+          oldWarn.apply(console, args);
+        }
+      };
+    };
+  </script>
+
+  <script>
+    // Get game parameters from URL
+    const params = new URLSearchParams(window.location.search);
+    const gameCore = params.get('core');
+    const gameRomUrl = params.get('romUrl');
+    const gameTitle = params.get('title');
+
+    window.currentGameTitle = gameTitle;
+    window.currentGameCore = gameCore;
+    window.currentGameRomUrl = gameRomUrl;
+
+    // Update title
+    document.getElementById('game-title').textContent = gameTitle || 'Game';
+
+    async function resolvePlayableRomUrl(romPath) {
+      if (romPath && romPath.startsWith('https://archive.org')) {
+        // Use Netlify proxy for Archive.org ROMs
+        return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
+      }
+      return romPath;
+    }
+
+    async function bootEmulator() {
+      if (!gameCore || !gameRomUrl) {
+        showError('Missing game parameters (core or romUrl)');
+        return;
+      }
+
+      try {
+        // Prepare game container
+        const gameDiv = document.getElementById('game');
+        gameDiv.innerHTML = '';
+
+        // Resolve ROM URL (handle Archive.org via proxy)
+        const playableUrl = await resolvePlayableRomUrl(gameRomUrl);
+
+        // Set up EmulatorJS globals
+        window.EJS_player = '#game';
+        window.EJS_gameUrl = playableUrl;
+        window.EJS_core = gameCore;
+        window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+        window.EJS_gameid = gameTitle;
+        window.EJS_gameID = gameTitle;
+        window.EJS_defaultControls = { 0: {}, 1: {}, 2: {}, 3: {} };
+        window.EJS_startOnLoaded = true;
+        window.EJS_hideMenubar = false;
+
+        // Save handler
+        window.EJS_onSaveState = (data) => {
+          const payload = data && typeof data === 'object' && data.state !== undefined ? data.state : data;
+          window.syncSaveToCloud(payload);
+        };
+
+        // Load saved game state if it exists
+        if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
+          try {
+            const saveRef = doc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
+            const saveSnap = await getDoc(saveRef);
+            if (saveSnap.exists() && saveSnap.data().state) {
+              window.EJS_loadStateURL = saveSnap.data().state;
+              console.log('Loaded saved game state');
+            }
+          } catch (err) {
+            console.warn('Save load failed:', err?.message || err);
+          }
+        }
+
+        // Load EmulatorJS loader
+        const script = document.createElement('script');
+        script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+        script.async = false;
+        
+        script.onload = () => {
+          console.log('EmulatorJS loader loaded');
+          // Hide loading indicator after a short delay to let emulator initialize
+          setTimeout(() => {
+            const loading = document.getElementById('loading-indicator');
+            if (loading) loading.style.display = 'none';
+          }, 2000);
+
+          // Set up autosave
+          setupAutosave();
+          suppressKnownEjsWarnings();
+        };
+
+        script.onerror = () => {
+          showError('Failed to load EmulatorJS. Check your internet connection.');
+        };
+
+        document.body.appendChild(script);
+
+      } catch (err) {
+        showError('Error booting emulator: ' + (err?.message || err));
+      }
+    }
+
+    function setupAutosave() {
+      // Autosave every 2 minutes
+      if (window.currentAutoSaveInterval) clearInterval(window.currentAutoSaveInterval);
+      
+      window.currentAutoSaveInterval = setInterval(async () => {
+        if (!window.EJS_emulator || !window.currentUser) return;
+        
+        try {
+          const state = window.EJS_emulator.gameManager?.getState?.();
+          if (state != null) {
+            await window.syncSaveToCloud(state);
+            console.log('Auto-saved game state');
+          }
+        } catch (err) {
+          console.warn('Auto-save failed:', err?.message || err);
+        }
+      }, 120000);
+    }
+
+    function showError(msg) {
+      const errorDiv = document.getElementById('error-msg');
+      errorDiv.textContent = msg;
+      errorDiv.style.display = 'block';
+      document.getElementById('loading-indicator').style.display = 'none';
+    }
+
+    function closeGame() {
+      // Clear autosave interval
+      if (window.currentAutoSaveInterval) {
+        clearInterval(window.currentAutoSaveInterval);
+      }
+
+      // Destroy emulator if it exists
+      if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
+        try {
+          window.EJS_emulator.destroy();
+        } catch (e) {
+          console.warn('Emulator destroy failed:', e);
+        }
+      }
+
+      // Return to main page
+      window.location.href = 'index.html';
+    }
+
+    window.closeGame = closeGame;
+
+    // Boot emulator when page loads
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bootEmulator);
+    } else {
+      bootEmulator();
+    }
+  </script>
+</body>
+</html>
