@@ -582,10 +582,9 @@
       if (btn) btn.disabled = false;
     }
 
-    // Show initial loading state BEFORE auth check and keep the dashboard hidden until auth confirms a user.
+    // Hide both screens initially until auth state is determined
     document.querySelector('.dashboard')?.classList.add('hidden');
-    document.getElementById('landing-screen').classList.remove('hidden');
-    showWelcomeLoadingState();
+    document.getElementById('landing-screen').classList.add('hidden');
 
     function setAuthScreens(isAuthenticated) {
       const landing = document.getElementById('landing-screen');
@@ -698,7 +697,9 @@
       } else if (location.protocol !== 'file:') {
         // No user logged in - show Sign in button
         window.currentUser = null;
+        showWelcomeLoadingState();
         updateWelcomeButton(null);
+        setAuthScreens(false);
         console.log('No user logged in, showing Sign in button');
       }
     });
