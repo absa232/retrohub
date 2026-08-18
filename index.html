@@ -704,44 +704,6 @@
       }
     });
 
-    // Minimal router for play routes only
-    const router = () => {
-      const path = window.location.pathname;
-      const isLoggedIn = !!(window.currentUser || (window.auth && window.auth.currentUser));
-      const isPlayRoute = path.startsWith('/play/');
-
-      if (isPlayRoute) {
-        if (!isLoggedIn) {
-          window.history.replaceState({}, '', '/');
-          return router();
-        }
-
-        const pathParts = path.split('/');
-        if (pathParts.length >= 4) {
-          const system = pathParts[2];
-          const encodedTitle = pathParts[3];
-          const gameTitle = decodeURIComponent(encodedTitle);
-
-          console.log('ROUTE_PLAY_DETECTED', { system, gameTitle });
-          setAuthScreens(true);
-          window.__autoLoadGame = { system, gameTitle };
-        }
-      }
-    };
-
-    window.router = router;
-
-    // Handle browser back/forward buttons
-    window.addEventListener('popstate', () => {
-      console.log('POPSTATE_EVENT', window.location.pathname);
-      router();
-    });
-
-    // Call router on page load to handle direct URL visits
-    setTimeout(() => {
-      router();
-    }, 100);
-
     // Expose auth and provider for non-module scripts (profile dropdown handlers)
     window.auth = auth;
     window.provider = provider;
@@ -1230,7 +1192,7 @@
 
             const card = document.createElement('div');
             card.className = 'game-card';
-            card.setAttribute('onclick', `launchGameWithRoute('${launchCore}', '${resolvedSystemKey}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
+            card.setAttribute('onclick', `launchGame('${launchCore}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
             const thumbMarkup = boxartUrl
               ? `<img src="${boxartUrl}" alt="${gameTitle}" onerror="this.style.display='none'; this.parentElement.innerHTML='${systemData.emoji || '🎮'}'; this.parentElement.style.fontSize='2.5rem';"/>`
               : (systemData.emoji || '🎮');
@@ -1255,37 +1217,6 @@
 
         if (totalGamesFound === 0) {
           container.innerHTML = '<div id="loading-games-msg">No games found in the configured categories.</div>';
-        }
-
-        if (window.__autoLoadGame) {
-          const { system, gameTitle } = window.__autoLoadGame;
-          const urlSlug = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-          const slugIndexKey = `${system}_${urlSlug}`;
-
-          let gameIndexKey = null;
-          if (window.__gamesSlugIndex && window.__gamesSlugIndex[slugIndexKey]) {
-            gameIndexKey = window.__gamesSlugIndex[slugIndexKey];
-          } else {
-            gameIndexKey = `${system}_${gameTitle}`;
-            if (!window.__gamesIndex[gameIndexKey]) {
-              gameIndexKey = null;
-            }
-          }
-
-          const gameInfo = gameIndexKey ? window.__gamesIndex[gameIndexKey] : null;
-
-          if (gameInfo) {
-            const requestedKey = `${system}|${gameInfo.title}|${gameInfo.core}|${gameInfo.romPath}`;
-            if (window.__launchLockKey !== requestedKey) {
-              setTimeout(() => {
-                launchGame(gameInfo.core, gameInfo.romPath, gameInfo.title);
-              }, 500);
-            }
-          } else {
-            console.warn('AUTO_LOAD_GAME_NOT_FOUND', { system, gameTitle, slugIndexKey, availableKeys: Object.keys(window.__gamesIndex) });
-          }
-
-          window.__autoLoadGame = null;
         }
       } finally {
         window.__arcadeLibraryLoading = false;
@@ -1337,16 +1268,7 @@
       }
     }
 
-    // Wrapper function to handle URL routing before launching game
-    async function launchGameWithRoute(core, system, romPath, title) {
-      const encodedTitle = encodeURIComponent(title);
-      const routeKey = `${system}|${title}|${core}|${romPath}`;
-      if (window.__launchLockKey === routeKey) {
-        return;
-      }
-      window.history.pushState({}, '', `/play/${system}/${encodedTitle}`);
-      await launchGame(core, romPath, title);
-    }
+
 
     function destroyCurrentEmulatorSession() {
       if (window.currentAutoSaveInterval) {
