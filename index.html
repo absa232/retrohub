@@ -691,11 +691,10 @@
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // User is logged in - update UI and button, but keep welcome screen visible
-        // They must click "Continue as [Name]" to proceed to dashboard
+        // User is logged in - automatically show dashboard
         window.currentUser = user || null;
-        updateWelcomeButton(user);
-        console.log('Existing user detected, showing Continue as button');
+        updateUserUI(user);
+        console.log('Existing user detected, showing dashboard');
       } else if (location.protocol !== 'file:') {
         // No user logged in - show Sign in button
         window.currentUser = null;
