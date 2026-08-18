@@ -765,7 +765,14 @@
         return null;
       }
 
-      const state = (emu.gameManager && typeof emu.gameManager.getState === 'function') ? emu.gameManager.getState() : null;
+      let state = null;
+      try {
+        state = (emu.gameManager && typeof emu.gameManager.getState === 'function') ? emu.gameManager.getState() : null;
+      } catch (err) {
+        console.warn('AUTO_SAVE_SKIPPED: Emulator state read failed:', err?.message || err);
+        return null;
+      }
+
       if (state == null) {
         console.warn('AUTO_SAVE_SKIPPED: no state available yet');
         return null;
@@ -925,10 +932,11 @@
     ];
 
     const SYSTEM_MAP = {
-      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'segaMD', name: 'SEGA MEGADRIVE', emoji: '🌀', thumbnailSystem: 'Sega - Mega Drive - Genesis' },
-      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes', name: 'SUPER NINTENDO', emoji: '🎮', thumbnailSystem: 'Nintendo - Super Nintendo Entertainment System' },
-      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'gba', name: 'GAME BOY ADVANCE', emoji: '🕹️', thumbnailSystem: 'Nintendo - Game Boy Advance' },
-      'n64': { system: 'Nintendo_-_Nintendo_64', core: 'n64', name: 'NINTENDO 64', emoji: '🏰', thumbnailSystem: 'Nintendo - Nintendo 64' }
+      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'picodrive', name: 'SEGA MEGADRIVE', emoji: '🌀', thumbnailSystem: 'Sega - Mega Drive - Genesis' },
+      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes9x', name: 'SUPER NINTENDO', emoji: '🎮', thumbnailSystem: 'Nintendo - Super Nintendo Entertainment System' },
+      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'mgba', name: 'GAME BOY ADVANCE', emoji: '🕹️', thumbnailSystem: 'Nintendo - Game Boy Advance' },
+      'neogeo': { system: 'SNK_-_Neo_Geo', core: 'fbneo', name: 'NEO GEO', emoji: '⚔️', thumbnailSystem: 'SNK - Neo Geo' },
+      'n64': { system: 'Nintendo_-_Nintendo_64', core: 'mupen64plus_next', name: 'NINTENDO 64', emoji: '🏰', thumbnailSystem: 'Nintendo - Nintendo 64' }
     };
 
     // Load categories from GitHub JSON
@@ -1013,16 +1021,16 @@
       }
     }
 
-    // Proxy configuration for handling archive downloads and images
-    const ARCHIVE_PROXY_BASE = 'http://127.0.0.1:8001/proxy/archive';
-    const IMAGE_PROXY_BASE = 'http://127.0.0.1:8001/proxy/image';
-
     async function fetchArchiveCategory(categoryInfo) {
       const categoryId = categoryInfo.id || categoryInfo.file.replace('.json', '');
-      const systemKey = categoryInfo.system;
+      const inferredSystem = (categoryInfo.system || categoryId || categoryInfo.file || '')
+        .toLowerCase()
+        .replace(/^retrohub-roms-/, '')
+        .split('_')[0]
+        .trim();
+      const systemKey = inferredSystem || 'snes';
       const categoryJsonFile = categoryInfo.file;
-      
-      // Load the category JSON from GitHub
+
       const categoryUrl = `https://raw.githubusercontent.com/absa232/retrohub/main/categories/${categoryJsonFile}`;
       const response = await fetch(categoryUrl, { cache: 'no-store' });
       if (!response.ok) {
@@ -1031,9 +1039,9 @@
 
       const categoryData = await response.json();
       const games = Array.isArray(categoryData.games) ? categoryData.games : [];
-      
+
       const systemData = SYSTEM_MAP[systemKey] || {
-        system: null,
+        system: systemKey,
         core: categoryData.core || systemKey,
         name: categoryData.name || categoryId.toUpperCase(),
         emoji: categoryData.emoji || '🎮'
@@ -1069,52 +1077,58 @@
       let totalGamesFound = 0;
 
       for (const categoryInfo of window.ARCHIVE_CATEGORIES) {
-        const systemKey = categoryInfo.system || categoryInfo.id.split('-').pop();
+        console.log('Processing category:', categoryInfo);
+        const categoryId = categoryInfo.id;
+        const gridId = `grid-${categoryId}`;
         const section = document.createElement('div');
         section.className = 'category-section';
         section.innerHTML = `
-          <h2 class="category-title">Loading ${categoryInfo.id || 'category'}...</h2>
-          <div class="games-grid" id="grid-${systemKey}"></div>
+          <h2 class="category-title">Loading ${categoryId}...</h2>
+          <div class="games-grid" id="${gridId}"></div>
         `;
         container.appendChild(section);
+        console.log('Created grid with ID:', gridId, 'Grid exists:', !!section.querySelector(`#${gridId}`));
 
         try {
-          const { systemKey: sk, systemData, games, categoryData } = await fetchArchiveCategory(categoryInfo);
+          const { systemKey, systemData, games, categoryData } = await fetchArchiveCategory(categoryInfo);
+          console.log('Fetched category:', categoryId, 'Games:', games.length);
 
           if (!games.length) {
-            section.querySelector('h2').textContent = categoryData.name || categoryInfo.id;
+            section.querySelector('h2').textContent = categoryData.name || categoryId;
             const emptyState = document.createElement('div');
             emptyState.className = 'game-empty';
             emptyState.textContent = 'This category is currently empty.';
-            section.querySelector(`#grid-${sk}`).appendChild(emptyState);
+            section.querySelector(`#${gridId}`).appendChild(emptyState);
             continue;
           }
 
-          section.querySelector('h2').textContent = categoryData.name || categoryInfo.id;
-          const grid = section.querySelector(`#grid-${sk}`);
+          section.querySelector('h2').textContent = categoryData.name || categoryId;
+          const grid = section.querySelector(`#${gridId}`);
+          console.log('Grid element found:', !!grid, 'For gridId:', gridId);
 
           games.forEach(game => {
             const gameTitle = game.title;
             const romUrl = game.romUrl;
             const boxartUrl = game.boxartUrl;
-            const launchCore = systemData.core || sk;
-            const gameIndexKey = `${sk}_${gameTitle}`;
+            const resolvedSystemKey = systemKey || systemData.system || 'snes';
+            const launchCore = systemData.core || resolvedSystemKey;
+            const gameIndexKey = `${resolvedSystemKey}_${gameTitle}`;
             const safeRomUrl = romUrl.replace(/'/g, "\\'");
 
             window.__gamesIndex[gameIndexKey] = {
               core: launchCore,
               romPath: safeRomUrl,
               title: gameTitle,
-              system: sk
+              system: resolvedSystemKey
             };
 
             const slugTitle = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            const slugIndexKey = `${sk}_${slugTitle}`;
+            const slugIndexKey = `${resolvedSystemKey}_${slugTitle}`;
             window.__gamesSlugIndex[slugIndexKey] = gameIndexKey;
 
             const card = document.createElement('div');
             card.className = 'game-card';
-            card.setAttribute('onclick', `launchGameWithRoute('${launchCore}', '${sk}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
+            card.setAttribute('onclick', `launchGameWithRoute('${launchCore}', '${resolvedSystemKey}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
             const thumbMarkup = boxartUrl
               ? `<img src="${boxartUrl}" alt="${gameTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='${systemData.emoji || '🎮'}'; this.parentElement.style.fontSize='2.5rem';"/>`
               : (systemData.emoji || '🎮');
@@ -1129,11 +1143,11 @@
         } catch (err) {
           console.warn('Category load failed:', err);
           const titleEl = section.querySelector('h2');
-          if (titleEl) titleEl.textContent = categoryInfo.id || 'Unknown Category';
+          if (titleEl) titleEl.textContent = categoryId || 'Unknown Category';
           const message = document.createElement('div');
           message.className = 'game-empty';
           message.textContent = err.message || 'This category is temporarily unavailable.';
-          section.querySelector(`#grid-${systemKey}`)?.appendChild(message);
+          section.querySelector(`#${gridId}`)?.appendChild(message);
         }
       }
 
@@ -1170,6 +1184,32 @@
       }
     }
 
+    function resolvePlayableRomUrl(romPath) {
+      if (!romPath) return romPath;
+
+      try {
+        const url = new URL(romPath);
+        const host = url.hostname.toLowerCase();
+
+        if (host.includes('archive.org')) {
+          const segments = url.pathname.split('/').filter(Boolean);
+          const downloadIndex = segments.indexOf('download');
+          if (downloadIndex >= 0 && segments.length > downloadIndex + 2) {
+            const collectionId = segments[downloadIndex + 1];
+            const fileName = decodeURIComponent(segments.slice(downloadIndex + 2).join('/'));
+            return `${'http://127.0.0.1:8001'}/proxy/archive/${collectionId}/${encodeURIComponent(fileName)}`;
+          }
+        }
+
+        return romPath;
+      } catch (err) {
+        if (!/^https?:\/\//i.test(romPath)) {
+          return `${'http://127.0.0.1:8001'}/proxy/archive/${romPath}`;
+        }
+        return romPath;
+      }
+    }
+
     // Wrapper function to handle URL routing before launching game
     async function launchGameWithRoute(core, system, romPath, title) {
       const encodedTitle = encodeURIComponent(title);
@@ -1191,23 +1231,12 @@
         gameRoot.innerHTML = '';
       }
 
-      let normalizedRomUrl = romPath;
-      if (!/^https?:\/\//i.test(romPath)) {
-        normalizedRomUrl = `${ARCHIVE_PROXY_BASE}/${romPath}`;
-      }
+      const normalizedRomUrl = resolvePlayableRomUrl(romPath);
 
-      let blobUrl = null;
-      try {
-        if (/^https?:\/\//i.test(normalizedRomUrl)) {
-          const response = await fetch(normalizedRomUrl, { mode: 'cors' });
-          if (!response.ok) throw new Error(`ROM request failed: ${response.status}`);
-          const blob = await response.blob();
-          blobUrl = URL.createObjectURL(blob);
-        }
-      } catch (err) {
-        console.warn('REMOTE_ROM_FETCH_FALLBACK_FAILED', err?.message || err);
-        blobUrl = null;
-      }
+      // Do not download the ROM into a blob before booting the emulator.
+      // That wait is what makes the modal feel slow. EmulatorJS can launch
+      // immediately from the direct proxied URL and begin streaming the ROM.
+      const directRomUrl = normalizedRomUrl || romPath;
 
       const safeGameId = (title || 'arcade-game')
         .toLowerCase()
@@ -1218,8 +1247,10 @@
       window.EJS_gameid = window.EJS_gameID;
       window.EJS_player = '#game';
       window.EJS_core = mappedCore;
-      window.EJS_gameUrl = blobUrl || normalizedRomUrl;
+      window.EJS_gameUrl = directRomUrl;
       window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+      window.EJS_startOnLoaded = true;
+      window.EJS_startOnLoad = true;
       window.EJS_autosave = 1;
       window.EJS_autoSave = 1;
       window.EJS_onAudioCallback = null;
@@ -1312,13 +1343,23 @@
 
       suppressKnownEjsWarnings();
 
-      const existingLoader = document.querySelector('script[src="https://cdn.emulatorjs.org/stable/data/loader.js"]');
-      if (!existingLoader) {
-        const ejsScript = document.createElement('script');
-        ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-        ejsScript.async = false;
-        document.body.appendChild(ejsScript);
+      if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
+        try { window.EJS_emulator.destroy(); } catch (e) { console.warn('Destroy previous emulator failed:', e?.message || e); }
       }
+      window.EJS_emulator = null;
+      window.__loadedSaveBlob = null;
+      window.__arcadeSaveHook = null;
+      window.__ejsResizeGuardInstalled = false;
+      window.__ejsGameIdGuardInstalled = false;
+
+      const existingLoader = document.querySelector('script[src="https://cdn.emulatorjs.org/stable/data/loader.js"]');
+      if (existingLoader) {
+        existingLoader.remove();
+      }
+      const ejsScript = document.createElement('script');
+      ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+      ejsScript.async = false;
+      document.body.appendChild(ejsScript);
 
       function patchEjsResizeGuard() {
         if (!window.EmulatorJS || window.__ejsResizeGuardInstalled) {
@@ -1439,14 +1480,12 @@
         if (!window.__loadedSaveBlob || !window.EJS_emulator) {
           return;
         }
-        
+
         try {
           console.log('INJECTING_SAVE_INTO_EMULATOR', { hasSave: !!window.__loadedSaveBlob });
-          
-          // Convert blob to ArrayBuffer for emulator
+
           const arrayBuffer = await window.__loadedSaveBlob.arrayBuffer();
-          
-          // Try different emulator APIs to load the state
+
           if (window.EJS_emulator.loadState && typeof window.EJS_emulator.loadState === 'function') {
             window.EJS_emulator.loadState(arrayBuffer);
             console.log('SAVE_INJECTED_VIA_loadState');
@@ -1459,15 +1498,11 @@
         } catch (err) {
           console.error('SAVE_INJECTION_ERROR', err?.message || err);
         }
-
-
       };
 
       setTimeout(() => {
-        // Inject loaded save into the emulator after it's initialized
         injectedLoadState();
-        
-        // Start autosave interval
+
         window.currentAutoSaveInterval = setInterval(() => {
           triggerNativeAutosave();
         }, 120000);
@@ -1476,25 +1511,22 @@
 
     function closeGame() {
       console.log('CLOSING_GAME', { title: window.currentGameTitle });
-      
-      // Stop autosave interval
+
       if (window.currentAutoSaveInterval) {
         clearInterval(window.currentAutoSaveInterval);
         window.currentAutoSaveInterval = null;
       }
 
-      // Save current game state one final time before closing
       const performFinalSave = async () => {
-        if (window.saveCurrentGameState && typeof window.saveCurrentGameState === 'function') {
-          try {
+        try {
+          if (window.saveCurrentGameState && typeof window.saveCurrentGameState === 'function') {
             await window.saveCurrentGameState();
             console.log('FINAL_SAVE_ON_CLOSE');
-          } catch (e) {
-            console.warn('Final save on close failed:', e);
           }
+        } catch (e) {
+          console.warn('Final save on close failed:', e);
         }
 
-        // Force pause the emulator
         if (window.EJS_emulator) {
           try {
             if (typeof window.EJS_emulator.pause === 'function') {
@@ -1505,7 +1537,6 @@
           }
         }
 
-        // Remove event listeners
         if (window.__arcadeSaveHook && window.EJS_emulator) {
           try {
             window.EJS_emulator.off?.('saveState', window.__arcadeSaveHook);
@@ -1514,7 +1545,6 @@
           }
         }
 
-        // Destroy emulator completely
         if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
           try {
             window.EJS_emulator.destroy();
@@ -1524,18 +1554,15 @@
           }
         }
 
-        // Clear emulator reference
         window.EJS_emulator = null;
         window.__loadedSaveBlob = null;
+        window.__arcadeSaveHook = null;
 
-        // Hide modal and clear game container
-        document.getElementById('player-modal').classList.remove('active');
+        const modal = document.getElementById('player-modal');
+        if (modal) modal.classList.remove('active');
         const gameNode = document.getElementById('game');
-        if (gameNode) {
-          gameNode.innerHTML = '';
-        }
+        if (gameNode) gameNode.innerHTML = '';
 
-        // Clear current game title (AFTER all save operations complete)
         window.currentGameTitle = "";
 
         if (window.location.pathname.startsWith('/play/')) {
