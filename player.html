@@ -180,14 +180,43 @@
       }, 500);
     });
 
+    function bytesToBase64(value) {
+      let bytes;
+
+      if (value instanceof ArrayBuffer) {
+        bytes = new Uint8Array(value);
+      } else if (ArrayBuffer.isView(value)) {
+        bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+      } else if (value && typeof value.length === 'number') {
+        bytes = Uint8Array.from(value);
+      } else {
+        return null;
+      }
+
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let index = 0; index < bytes.length; index += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+      }
+      return btoa(binary);
+    }
+
+    async function serializeSaveState(value) {
+      const binaryValue = bytesToBase64(value);
+      if (binaryValue !== null) return binaryValue;
+      if (value instanceof Blob) return bytesToBase64(await value.arrayBuffer());
+      return value;
+    }
+
     // Save handler
     window.syncSaveToCloud = async (gameState) => {
       if (!window.currentUser || !window.currentGameTitle) return;
       
       try {
+        const serializedState = await serializeSaveState(gameState);
         const saveRef = doc(db, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
         await setDoc(saveRef, {
-          state: gameState,
+          state: serializedState,
           timestamp: new Date().toISOString()
         }, { merge: true });
       } catch (err) {
