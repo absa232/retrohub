@@ -223,6 +223,7 @@
     }
 
     const SAVE_CHUNK_SIZE = 700000;
+    let pendingSavePromise = Promise.resolve();
 
     // Save handler
     window.syncSaveToCloud = async (gameState) => {
@@ -254,6 +255,23 @@
         }
       } catch (err) {
         console.warn('Save to cloud failed:', err?.message || err);
+      }
+    };
+
+    window.saveCurrentGameState = async () => {
+      const emulator = window.EJS_emulator;
+      const getState = emulator?.gameManager?.getState;
+      if (!getState || !window.currentUser || !window.currentGameTitle) return false;
+
+      try {
+        const state = getState.call(emulator.gameManager);
+        if (state == null) return false;
+        pendingSavePromise = window.syncSaveToCloud(state);
+        await pendingSavePromise;
+        return true;
+      } catch (err) {
+        console.warn('Final save failed:', err?.message || err);
+        return false;
       }
     };
 
@@ -321,14 +339,26 @@
         // Save handler
         window.EJS_onSaveState = (data) => {
           const payload = data && typeof data === 'object' && data.state !== undefined ? data.state : data;
-          window.syncSaveToCloud(payload);
+          pendingSavePromise = window.syncSaveToCloud(payload);
+          return pendingSavePromise;
+        };
+
+        window.EJS_onLoadState = () => {
+          console.log('Loaded saved game state into emulator');
         };
 
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
           try {
-            const saveRef = doc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
-            const saveSnap = await getDoc(saveRef);
+            let saveRef = doc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
+            let saveSnap = await getDoc(saveRef);
+
+            // Read saves created before the chunked save path was introduced.
+            if (!saveSnap.exists()) {
+              saveRef = doc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
+              saveSnap = await getDoc(saveRef);
+            }
+
             if (saveSnap.exists()) {
               const saveData = saveSnap.data();
               let savedState = saveData.state;
@@ -346,6 +376,7 @@
                 window.EJS_loadStateURL = saveData.stateFormat === 'chunked-text-v1'
                   ? base64ToBlobUrl(savedState)
                   : savedState;
+                window.__loadedSaveStateUrl = window.EJS_loadStateURL;
                 console.log('Loaded saved game state');
               }
             }
@@ -393,7 +424,8 @@
         try {
           const state = window.EJS_emulator.gameManager?.getState?.();
           if (state != null) {
-            await window.syncSaveToCloud(state);
+            pendingSavePromise = window.syncSaveToCloud(state);
+            await pendingSavePromise;
             console.log('Auto-saved game state');
           }
         } catch (err) {
@@ -409,11 +441,20 @@
       document.getElementById('loading-indicator').style.display = 'none';
     }
 
-    function closeGame() {
+    async function closeGame() {
+      const closeButton = document.querySelector('.close-btn');
+      if (closeButton) {
+        closeButton.disabled = true;
+        closeButton.textContent = 'Saving...';
+      }
+
       // Clear autosave interval
       if (window.currentAutoSaveInterval) {
         clearInterval(window.currentAutoSaveInterval);
       }
+
+      await window.saveCurrentGameState();
+      await pendingSavePromise;
 
       // Destroy emulator if it exists
       if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
