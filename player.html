@@ -215,12 +215,16 @@
     }
 
     function base64ToBlobUrl(value) {
+      return URL.createObjectURL(new Blob([base64ToBytes(value)], { type: 'application/octet-stream' }));
+    }
+
+    function base64ToBytes(value) {
       const binary = atob(value);
       const bytes = new Uint8Array(binary.length);
       for (let index = 0; index < binary.length; index++) {
         bytes[index] = binary.charCodeAt(index);
       }
-      return URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+      return bytes;
     }
 
     const SAVE_CHUNK_SIZE = 700000;
@@ -250,10 +254,10 @@
           timestamp: new Date().toISOString()
         }, { merge: true });
 
-        for (let index = 0; index < chunks.length; index++) {
+        await Promise.all(chunks.map((chunk, index) => {
           const chunkRef = doc(saveRef, 'chunks', String(index));
-          await setDoc(chunkRef, { index, data: chunks[index] });
-        }
+          return setDoc(chunkRef, { index, data: chunk });
+        }));
       } catch (err) {
         console.warn('Save to cloud failed:', err?.message || err);
       }
@@ -348,6 +352,14 @@
           console.log('Loaded saved game state into emulator');
         };
 
+        window.EJS_onGameStart = () => {
+          if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
+            window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
+            window.__pendingSavedStateBytes = null;
+            console.log('Applied saved game state to emulator');
+          }
+        };
+
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
           try {
@@ -374,10 +386,11 @@
               }
 
               if (savedState) {
-                window.EJS_loadStateURL = saveData.stateFormat === 'chunked-text-v1'
-                  ? base64ToBlobUrl(savedState)
-                  : savedState;
-                window.__loadedSaveStateUrl = window.EJS_loadStateURL;
+                if (saveData.stateFormat === 'chunked-text-v1') {
+                  window.__pendingSavedStateBytes = base64ToBytes(savedState);
+                } else {
+                  window.EJS_loadStateURL = savedState;
+                }
                 console.log('Loaded saved game state');
               }
             }
