@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Our Arcade 💕</title>
+  <title>Welcome to Our Retro Hub</title>
   
   <!-- GOOGLE NOTO COLOR EMOJI FONT -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,12 +32,124 @@
       min-height: 100vh;
     }
 
+    /* --- ROMANTIC LANDING OVERLAY --- */
+    #landing-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #2a0845 0%, #6441a5 100%);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.8s ease, visibility 0.8s;
+      text-align: center;
+      padding: 20px;
+    }
 
+    #landing-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
 
-    /* Target emulator canvas wrapper */
-    .emulator-container,
-    .ejs-container {
-      position: relative !important;
+    .heart-icon {
+      font-size: 60px;
+      margin-bottom: 20px;
+      font-family: 'Noto Color Emoji', sans-serif;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .landing-title {
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    .landing-subtitle {
+      font-size: 1.1rem;
+      color: #e0e0e0;
+      margin-bottom: 30px;
+      max-width: 400px;
+    }
+
+    /* Loading spinner animation */
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .welcome-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(0, 0, 0, 0.3);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .google-icon {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .google-icon svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .google-icon.hidden,
+    #welcome-btn-label.hidden {
+      display: none;
+    }
+
+    .welcome-spinner.hidden {
+      display: none;
+    }
+
+    .enter-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .enter-btn {
+      background-color: var(--accent);
+      color: #000;
+      border: none;
+      padding: 14px 32px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(255, 139, 167, 0.4);
+      transition: transform 0.2s, background-color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      max-width: 100%;
+      white-space: nowrap;
+    }
+
+    .enter-btn:hover {
+      transform: scale(1.05);
+      background-color: #ff9fb5;
+    }
+
+    /* Make Google icon more visible */
+    .google-icon svg path {
+      filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
     }
 
     .google-icon {
@@ -54,323 +166,41 @@
       height: 100%;
       display: block;
     }
-
-    /* Hide only EmulatorJS virtual gamepad / D-pad UI, not the main menu */
-    .ejs_dpad_main,
-    .ejs_dpad_vertical,
-    .ejs_dpad_horizontal,
-    .ejs_dpad_bar,
-    .ejs_virtualGamepad_parent,
-    .ejs_virtualGamepad_top,
-    .ejs_virtualGamepad_bottom,
-    .ejs_virtualGamepad_left,
-    .ejs_virtualGamepad_right,
-    .ejs_virtualGamepad_button,
-    .ejs_virtualGamepad_open,
-    [class*="virtualGamepad"],
-    [class*="dpad"] {
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-      pointer-events: none !important;
-      width: 0 !important;
-      height: 0 !important;
-      max-width: 0 !important;
-      max-height: 0 !important;
-      overflow: hidden !important;
-    }
-
-    /* --- DASHBOARD STYLES --- */
-    .dashboard {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 40px 20px;
-      display: block;
-    }
-
-    .dashboard.hidden {
-      display: none;
-    }
-
-    header {
-      margin-bottom: 40px;
-      border-bottom: 2px solid var(--card-bg);
-      padding-bottom: 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 24px;
-    }
-
-    .header-brand {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      min-width: 0;
-    }
-
-    .app-logo {
-      width: 140px;
-      height: 120px;
-      object-fit: contain;
-      flex-shrink: 0;
-      background: transparent;
-      padding: 0;
-      border: none;
-      border-radius: 0;
-      box-shadow: none;
-      display: block;
-    }
-
-    .header-info {
-      min-width: 0;
-    }
-
-    .header-info h1 {
-      font-size: 2.2rem;
-      color: var(--accent);
-      line-height: 1.1;
-    }
-
-    .header-info p {
-      color: var(--subtext);
-      margin-top: 5px;
-    }
-
-    /* Top-Right Profile Badge */
-    .user-profile {
-      display: none;
-      align-items: center;
-      gap: 12px;
-      background-color: var(--card-bg);
-      padding: 8px 16px;
-      border-radius: 30px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .user-profile.active {
-      display: flex;
-    }
-
-    .user-avatar {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: 2px solid var(--accent);
-      object-fit: cover;
-    }
-
-    .user-name {
-      font-weight: 600;
-      font-size: 0.95rem;
-      color: var(--text);
-    }
-
-    /* Categories */
-    .category-section {
-      margin-bottom: 50px;
-    }
-
-    .category-title {
-      font-size: 1.5rem;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .category-title::before {
-      content: '';
-      display: inline-block;
-      width: 4px;
-      height: 20px;
-      background-color: var(--accent);
-      border-radius: 2px;
-    }
-
-    .games-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-      gap: 20px;
-    }
-
-    .game-card {
-      background-color: var(--card-bg);
-      border-radius: 12px;
-      padding: 15px;
-      cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      text-align: center;
-      min-height: 310px;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .game-card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-      border-color: var(--accent);
-    }
-
-    .game-thumb {
-      width: 100%;
-      height: 180px;
-      background-color: transparent;
-      border-radius: 18px;
-      margin-bottom: 12px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 2.5rem;
-      font-family: 'Noto Color Emoji', sans-serif;
-      color: var(--subtext);
-      overflow: hidden;
-      border: none;
-    }
-
-    .game-thumb img {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: contain;
-      background: transparent;
-      border-radius: 18px;
-      padding: 0;
-      border: none;
-      box-shadow: none;
-    }
-
-    .game-card h3 {
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-      line-height: 1.3;
-    }
-
-    .game-card p {
-      font-size: 0.85rem;
-      color: var(--subtext);
-    }
-
-    /* --- EMULATOR MODAL --- */
-    .modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 10000;
-      background-color: rgba(0,0,0,0.75);
-    }
-    .modal.active { display: flex; }
-
-    .modal-content {
-      background: var(--card-bg);
-      width: 90%;
-      max-width: 900px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.06);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-    }
-
-    .modal-header {
-      padding: 12px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(0,0,0,0.08);
-      border-bottom: 1px solid rgba(255,255,255,0.03);
-    }
-
-    .modal-title { font-size: 1.1rem; color: var(--accent); font-weight: 700; }
-
-    .close-btn {
-      background: none;
-      border: none;
-      color: var(--text);
-      font-size: 1.4rem;
-      cursor: pointer;
-    }
-
-    .emulator-body {
-      width: 100%;
-      height: 560px;
-      background-color: #000;
-      position: relative;
-    }
-
-    #game { width: 100%; height: 100%; }
-    .crt-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background-image: linear-gradient(rgba(0,0,0,0.0), rgba(0,0,0,0.08)), repeating-linear-gradient(transparent, rgba(0,0,0,0.06) 1px, transparent 2px);
-      mix-blend-mode: overlay;
-      opacity: 0.85;
-    }
   </style>
 </head>
 <body>
 
-
-
-  <!-- MAIN DASHBOARD -->
-  <div class="dashboard">
-    <header>
-      <div class="header-brand">
-        <img
-          class="app-logo"
-          src="https://raw.githubusercontent.com/absa232/retrohub/refs/heads/main/logo/app-logo.png"
-          alt="RetroHub logo"
-        />
-        <div class="header-info" aria-hidden="true">
-          <span style="display:none">RetroHub</span>
-        </div>
-      </div>
-
-      <!-- Profile Badge (Top Right) -->
-      <div id="user-profile" class="user-profile">
-        <img id="user-avatar" class="user-avatar" src="" alt="Profile Picture" />
-        <span id="user-name" class="user-name"></span>
-      </div>
-    </header>
-
-    <!-- DYNAMIC GAMES LIBRARY (populated from GitHub 'roms' folder) -->
-    <div id="games-container"></div>
-  </div>
-
-  <!-- POPUP EMULATOR PLAYER -->
-  <div id="player-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title" id="modal-title">Loading Game...</div>
-        <button class="close-btn" onclick="closeGame()">✕</button>
-      </div>
-      <div class="emulator-body" id="emulator-container">
-        <div id="game"></div>
-        <div class="crt-overlay"></div>
-      </div>
-    </div>
+  <!-- ROMANTIC LANDING SCREEN -->
+  <div id="landing-screen">
+    <div class="heart-icon">🎮💖</div>
+    <h1 class="landing-title">Welcome to Our Retro Hub</h1>
+    <p class="landing-subtitle">I built this small space so we can play through some iconic classics together, no matter how many miles are between us.</p>
+    <button id="welcome-btn" class="enter-btn" onclick="loginAndEnter()">
+      <span id="welcome-spinner" class="welcome-spinner"></span>
+      <span id="welcome-google-icon" class="google-icon" aria-hidden="true">
+        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Google">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.72 1.23 9.24 3.64l6.81-6.81C35.91 2.36 30.52 0 24 0 14.64 0 6.5 5.37 2.56 13.22l7.91 6.13C12.12 13.13 17.44 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.5 24.5c0-1.64-.15-3.22-.43-4.74H24v9h12.7c-.55 2.98-2.24 5.5-4.77 7.19l7.72 5.98C43.9 36.74 46.5 31.22 46.5 24.5z"/>
+          <path fill="#FBBC05" d="M32.93 36.95c-2.1 1.4-4.8 2.22-8.93 2.22-6.56 0-12.12-4.43-14.1-10.36l-8.03 6.2C5.5 42.53 13.82 48 24 48c7.1 0 13.08-2.34 17.43-6.35l-8.5-4.7z"/>
+          <path fill="#34A853" d="M10.9 29.81A14.97 14.97 0 0 1 9.5 24c0-1.7.29-3.33.81-4.81l-8.03-6.2A23.95 23.95 0 0 0 0 24c0 3.83.92 7.45 2.56 10.66l8.34-6.85z"/>
+        </svg>
+      </span>
+      <span id="welcome-btn-label">Sign in with Google</span>
+    </button>
   </div>
 
   <!-- FIREBASE SDKs (Cloud Firestore) -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // YOUR EXPLICIT FIREBASE CONFIG
     const firebaseConfig = {
       apiKey: "AIzaSyAeS_FJxXZbbakYuOMhF1MI_1P1Ht8EUwA",
       authDomain: "our-arcade-c417d.firebaseapp.com",
       projectId: "our-arcade-c417d",
-      storageBucket: "our-arcade-c417d.firebasestorage.app",
+      storageBucket: "our-arcade-c417d.appspot.com",
       messagingSenderId: "48063295144",
       appId: "1:48063295144:web:1bdcb75b600222d8ee5c9d"
     };
@@ -382,787 +212,90 @@
 
     provider.setCustomParameters({ prompt: 'select_account' });
 
-    window.currentUser = null;
-    window.currentGameTitle = "";
-    window.cloudSaveEnabled = true;
-    window.__arcadeLibraryLoading = false;
-    window.__arcadeLibraryLoaded = false;
-    window.__launchLockKey = null;
-    window.__guestMode = false;
-
-    function forceGuestSession() {
-      window.__guestMode = true;
-      updateUserUI({
-        displayName: 'Guest Player',
-        photoURL: getLocalAvatarDataUri('Guest')
-      });
-    }
-
-    function getLocalAvatarDataUri(name = 'Guest') {
-      const initials = (name || 'G').trim().charAt(0).toUpperCase();
-      const svg = `
-        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
-          <rect width="80" height="80" rx="40" fill="#ff8ba7"/>
-          <circle cx="40" cy="30" r="14" fill="#fff" opacity="0.9"/>
-          <path d="M22 62c4-10 14-16 18-16s14 6 18 16" fill="#fff" opacity="0.9"/>
-          <text x="40" y="44" text-anchor="middle" font-size="20" font-family="Segoe UI, Arial, sans-serif" fill="#1f1e2e" font-weight="700">${initials}</text>
-        </svg>
-      `;
-      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    }
-
     function showWelcomeLoadingState() {
-      // Welcome page is now separate, this is not used in index.html
-      console.log('showWelcomeLoadingState called (welcome page now separate)');
+      const btn = document.getElementById('welcome-btn');
+      const spinner = document.getElementById('welcome-spinner');
+      const icon = document.getElementById('welcome-google-icon');
+      const label = document.getElementById('welcome-btn-label');
+      
+      if (spinner) spinner.classList.remove('hidden');
+      if (icon) icon.classList.add('hidden');
+      if (label) {
+        label.classList.remove('hidden');
+        label.innerText = 'Verifying...';
+      }
+      if (btn) btn.disabled = true;
     }
 
     function updateWelcomeButton(user) {
-      // Welcome page is now separate, this is not used in index.html
-      console.log('updateWelcomeButton called (welcome page now separate)');
-    }
-
-    // Hide both screens initially until auth state is determined
-    document.querySelector('.dashboard')?.classList.add('hidden');
-
-    function setAuthScreens(isAuthenticated) {
-      const dashboard = document.querySelector('.dashboard');
-      if (dashboard) {
-        dashboard.classList.toggle('hidden', !isAuthenticated);
+      const btn = document.getElementById('welcome-btn');
+      const spinner = document.getElementById('welcome-spinner');
+      const icon = document.getElementById('welcome-google-icon');
+      const label = document.getElementById('welcome-btn-label');
+      
+      if (spinner) spinner.classList.add('hidden');
+      if (icon) icon.classList.remove('hidden');
+      if (label) label.classList.remove('hidden');
+      
+      if (label) {
+        label.innerText = user ? `Continue as ${user.displayName || 'Google User'}` : 'Sign in with Google';
       }
       
-      // Load games library once per authenticated session to avoid repeated fetch loops.
-      if (isAuthenticated && typeof fetchArcadeLibrary === 'function') {
-        if (!window.__arcadeLibraryLoading && !window.__arcadeLibraryLoaded) {
-          console.log('AUTH_TRANSITION: Loading arcade library');
-          fetchArcadeLibrary();
-        }
-      }
-    }
-
-    function updateUserUI(user) {
-      window.currentUser = user || null;
-      if (user) {
-        localStorage.setItem('arcade_logged_in', '1');
-      } else {
-        localStorage.removeItem('arcade_logged_in');
-      }
-
-      const greetingEl = document.getElementById('user-greeting');
-      if (greetingEl) {
-        greetingEl.innerText = '';
-      }
-
-      updateWelcomeButton(user);
-
-      if (user) {
-        document.getElementById('user-name').innerText = user.displayName || 'Player';
-        if (user.photoURL) {
-          document.getElementById('user-avatar').src = user.photoURL;
-        } else {
-          document.getElementById('user-avatar').src = getLocalAvatarDataUri(user.displayName || 'Player');
-        }
-        document.getElementById('user-profile').classList.add('active');
-      } else {
-        document.getElementById('user-name').innerText = 'Guest Player';
-        document.getElementById('user-avatar').src = getLocalAvatarDataUri('Guest');
-        document.getElementById('user-profile').classList.add('active');
-      }
-
-      setAuthScreens(!!user);
-    }
-
-    function enterArcadeWithoutLogin() {
-      updateUserUI({
-        displayName: 'Guest Player',
-        photoURL: getLocalAvatarDataUri('Guest')
-      });
+      if (btn) btn.disabled = false;
     }
 
     window.loginAndEnter = async function() {
-      // Welcome page is now separate - this function is not used in index.html
-      console.log('loginAndEnter called (welcome page now separate)');
+      const isLocalFile = location.protocol === 'file:';
+
+      // Already logged in: redirect to index.html
+      if (auth.currentUser) {
+        window.location.href = 'index.html';
+        return;
+      }
+
+      if (isLocalFile) {
+        // Local file: go to index.html in guest mode
+        window.location.href = 'index.html';
+        return;
+      }
+
+      showWelcomeLoadingState();
+
+      try {
+        const result = await signInWithPopup(auth, provider);
+        // After successful login, redirect to index.html
+        window.location.href = 'index.html';
+      } catch (error) {
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
+          console.log('User cancelled login');
+          updateWelcomeButton(auth.currentUser);
+          return;
+        }
+
+        if (error && (error.code === 'auth/unauthorized-domain' || error.code === 'auth/invalid-domain')) {
+          console.warn('Firebase domain is not authorized for this deployment.');
+          window.location.href = 'index.html';
+          return;
+        }
+        
+        console.error("Authentication failed:", error);
+        updateWelcomeButton(null);
+      }
     };
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // User is logged in - automatically show dashboard
-        window.currentUser = user || null;
-        updateUserUI(user);
-        console.log('Existing user detected, showing dashboard');
+        console.log('User logged in, redirecting to dashboard.html');
+        window.location.href = 'dashboard.html';
       } else if (location.protocol !== 'file:') {
-        // No user logged in - redirect to welcome page
-        window.location.href = 'welcome.html';
-        console.log('No user logged in, redirecting to welcome page');
+        updateWelcomeButton(null);
+        console.log('No user logged in, staying on welcome page');
       }
     });
 
-    // Expose auth and provider for non-module scripts (profile dropdown handlers)
+    // Expose auth for welcome page
     window.auth = auth;
     window.provider = provider;
-
-    // Initialize IndexedDB for instant local save caching
-    const dbName = 'ArcadeSaves';
-    const storeName = 'saves';
-    let localDB = null;
-
-    const initIndexedDB = () => {
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open(dbName, 1);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => {
-          localDB = request.result;
-          resolve(localDB);
-        };
-        request.onupgradeneeded = (event) => {
-          const db = event.target.result;
-          if (!db.objectStoreNames.contains(storeName)) {
-            db.createObjectStore(storeName, { keyPath: 'id' });
-          }
-        };
-      });
-    };
-
-    const saveToIndexedDB = async (gameTitle, saveBlob) => {
-      if (!localDB) await initIndexedDB();
-      return new Promise((resolve, reject) => {
-        const tx = localDB.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        store.put({
-          id: gameTitle,
-          blob: saveBlob,
-          timestamp: Date.now()
-        });
-        tx.onerror = () => reject(tx.error);
-        tx.oncomplete = () => resolve(true);
-      });
-    };
-
-    const loadFromIndexedDB = async (gameTitle) => {
-      if (!localDB) await initIndexedDB();
-      return new Promise((resolve, reject) => {
-        const tx = localDB.transaction(storeName, 'readonly');
-        const store = tx.objectStore(storeName);
-        const request = store.get(gameTitle);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result?.blob || null);
-      });
-    };
-
-    // Initialize IndexedDB on page load
-    initIndexedDB().catch(err => console.warn('IndexedDB init failed:', err));
-
-    const blobToBase64 = (blob) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result.split(',')[1]);
-        reader.readAsDataURL(blob);
-      });
-    };
-
-    const normalizeFirestoreGameKey = (gameTitle) => {
-      const raw = String(gameTitle || '').trim();
-      if (!raw) return 'unknown-game';
-      const sanitized = raw
-        .replace(/[\\/\[\]#?]/g, '-')
-        .replace(/\s+/g, ' ')
-        .trim();
-      return sanitized || 'unknown-game';
-    };
-
-    const normalizeSavePayload = (input) => {
-      if (input == null) return null;
-      if (input instanceof Blob) return input;
-      if (input instanceof ArrayBuffer) return new Blob([input], { type: 'application/octet-stream' });
-      if (ArrayBuffer.isView(input)) return new Blob([input.buffer], { type: 'application/octet-stream' });
-      if (typeof input === 'string') return new Blob([input], { type: 'text/plain' });
-      if (typeof input === 'object') {
-        if (input.state !== undefined) return normalizeSavePayload(input.state);
-        if (input.blob !== undefined) return normalizeSavePayload(input.blob);
-        if (input.data !== undefined) return normalizeSavePayload(input.data);
-        if (input.file !== undefined) return normalizeSavePayload(input.file);
-        return new Blob([JSON.stringify(input)], { type: 'application/json' });
-      }
-      return new Blob([String(input)], { type: 'text/plain' });
-    };
-
-    const base64ToBlob = (base64) => {
-      const byteCharacters = atob(base64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      return new Blob([new Uint8Array(byteNumbers)], { type: 'application/octet-stream' });
-    };
-
-    window.saveCurrentGameState = async function() {
-      const emu = window.EJS_emulator;
-      if (!window.currentGameTitle || !emu) {
-        console.warn('AUTO_SAVE_SKIPPED: emulator not ready');
-        return null;
-      }
-
-      let state = null;
-      try {
-        state = (emu.gameManager && typeof emu.gameManager.getState === 'function') ? emu.gameManager.getState() : null;
-      } catch (err) {
-        console.warn('AUTO_SAVE_SKIPPED: Emulator state read failed:', err?.message || err);
-        return null;
-      }
-
-      if (state == null) {
-        console.warn('AUTO_SAVE_SKIPPED: no state available yet');
-        return null;
-      }
-
-      await window.syncSaveToCloud(state);
-      return state;
-    };
-
-    window.syncSaveToCloud = async function(saveInput) {
-      const currentTitle = String(window.currentGameTitle || '').trim();
-      console.log('SYNC_SAVE_START', { currentUser: !!window.currentUser, currentGameTitle: currentTitle, uid: window.currentUser?.uid });
-
-      if (!currentTitle) {
-        console.error('SYNC_FAILED: currentGameTitle is null or undefined');
-        return;
-      }
-
-      const syncKey = `${window.currentUser?.uid || 'guest'}:${normalizeFirestoreGameKey(currentTitle)}`;
-      if (window.__lastFirestoreSyncKey === syncKey && (Date.now() - (window.__lastFirestoreSyncAt || 0)) < 3000) {
-        return;
-      }
-      window.__lastFirestoreSyncKey = syncKey;
-      window.__lastFirestoreSyncAt = Date.now();
-
-      try {
-        console.log('NORMALIZING_PAYLOAD', typeof saveInput, saveInput instanceof Uint8Array ? 'Uint8Array' : typeof saveInput);
-        const saveBlob = normalizeSavePayload(saveInput);
-        console.log('PAYLOAD_NORMALIZED', !!saveBlob, saveBlob?.type, saveBlob?.size);
-
-        if (!saveBlob) {
-          console.warn('No valid save payload to sync.');
-          return;
-        }
-
-        console.log('SAVING_TO_INDEXEDDB');
-        await saveToIndexedDB(currentTitle, saveBlob);
-        console.log('LOCAL_SAVE_COMPLETE - Data is safe locally!');
-
-        if (window.cloudSaveEnabled && window.currentUser && window.currentUser.uid) {
-          syncToFirestoreAsync(currentTitle, saveBlob).catch(err => {
-            console.warn('Background Firestore sync failed:', err?.message || err);
-          });
-        } else {
-          console.log('CLOUD_SYNC_DISABLED: using local IndexedDB save only');
-        }
-      } catch (err) {
-        if (window.cloudSaveEnabled) {
-          console.error('Local save failed:', err);
-        }
-      }
-    };
-
-    // Background Firestore sync is disabled by default to avoid noisy permission errors when rules are not configured.
-    const syncToFirestoreAsync = async (gameTitle, saveBlob) => {
-      if (!window.cloudSaveEnabled || !window.currentUser || !window.currentUser.uid) {
-        return;
-      }
-
-      const safeGameKey = normalizeFirestoreGameKey(gameTitle);
-      if (!safeGameKey || safeGameKey === 'unknown-game') {
-        console.warn('Skipping Firestore sync because the game title is empty.');
-        return;
-      }
-
-      try {
-        console.log('FIRESTORE_SYNC_STARTING_BACKGROUND');
-        const base64Data = await blobToBase64(saveBlob);
-
-        const CHUNK_SIZE = 800000;
-        const chunks = [];
-        for (let i = 0; i < base64Data.length; i += CHUNK_SIZE) {
-          chunks.push(base64Data.substring(i, i + CHUNK_SIZE));
-        }
-
-        console.log('DATA_CHUNKED', { totalChunks: chunks.length, safeGameKey });
-
-        const batch = writeBatch(db);
-        const timestamp = Date.now();
-
-        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', safeGameKey);
-        batch.set(metadataRef, {
-          timestamp: timestamp,
-          chunkCount: chunks.length,
-          totalSize: base64Data.length,
-          lastUpdated: new Date().toISOString()
-        }, { merge: true });
-
-        for (let i = 0; i < chunks.length; i++) {
-          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${safeGameKey}_chunk_${i}`);
-          batch.set(chunkRef, {
-            data: chunks[i],
-            index: i,
-            gameTitle: safeGameKey,
-            timestamp: timestamp
-          });
-        }
-
-        await batch.commit();
-        console.log('FIRESTORE_SYNC_COMPLETE');
-      } catch (err) {
-        if (window.cloudSaveEnabled) {
-          console.error('Firestore background sync failed:', err.message);
-        }
-      }
-    };
-
-    window.loadSaveFromCloud = async function() {
-      const currentTitle = String(window.currentGameTitle || '').trim();
-      if (!currentTitle) return null;
-
-      try {
-        console.log('Checking IndexedDB for save...');
-        const localSave = await loadFromIndexedDB(currentTitle);
-        if (localSave) {
-          console.log('Save loaded from IndexedDB (instant)!');
-          return localSave;
-        }
-
-        if (!window.cloudSaveEnabled || !window.currentUser || !window.currentUser.uid) {
-          console.log('Cloud sync disabled or user not logged in, no remote save to load');
-          return null;
-        }
-
-        const safeGameKey = normalizeFirestoreGameKey(currentTitle);
-        console.log('No local save, loading from Firestore...', { currentTitle, safeGameKey });
-        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', safeGameKey);
-        const metadataSnap = await getDoc(metadataRef);
-
-        if (!metadataSnap.exists()) {
-          console.log('No save found for', currentTitle, 'using key', safeGameKey);
-          return null;
-        }
-
-        const metadata = metadataSnap.data();
-        const chunkCount = metadata.chunkCount || 1;
-        console.log('Loading save from Firestore with', chunkCount, 'chunks');
-
-        let base64Data = '';
-        for (let i = 0; i < chunkCount; i++) {
-          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${safeGameKey}_chunk_${i}`);
-          const chunkSnap = await getDoc(chunkRef);
-          if (chunkSnap.exists()) {
-            base64Data += chunkSnap.data().data;
-          }
-        }
-
-        if (!base64Data) return null;
-
-        const blob = base64ToBlob(base64Data);
-        saveToIndexedDB(currentTitle, blob).catch(err => {
-          console.warn('Failed to cache save locally:', err);
-        });
-
-        console.log('Cloud save loaded from Firestore!');
-        return blob;
-      } catch (err) {
-        if (window.cloudSaveEnabled) {
-          console.error('Save load failed:', err);
-        }
-        return null;
-      }
-    };
-  </script>
-
-  <script>
-    // Archive.org arcade scanner + unified emulator launcher + account helpers
-    const SUPPORTED_ARCHIVE_EXTENSIONS = [
-      '.zip', '.gba', '.sfc', '.smc', '.gen', '.md', '.smd', '.nes', '.n64', '.z64', '.bin', '.nds'
-    ];
-
-    const SYSTEM_MAP = {
-      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'picodrive', name: 'SEGA MEGADRIVE', emoji: '🌀', thumbnailSystem: 'Sega - Mega Drive - Genesis' },
-      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes9x', name: 'SUPER NINTENDO', emoji: '🎮', thumbnailSystem: 'Nintendo - Super Nintendo Entertainment System' },
-      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'mgba', name: 'GAME BOY ADVANCE', emoji: '🕹️', thumbnailSystem: 'Nintendo - Game Boy Advance' },
-      'neogeo': { system: 'SNK_-_Neo_Geo', core: 'fbneo', name: 'NEO GEO', emoji: '⚔️', thumbnailSystem: 'SNK - Neo Geo' },
-      'n64': { system: 'Nintendo_-_Nintendo_64', core: 'mupen64plus_next', name: 'NINTENDO 64', emoji: '🏰', thumbnailSystem: 'Nintendo - Nintendo 64' }
-    };
-
-    // Load categories from GitHub JSON
-    window.ARCHIVE_CATEGORIES = [];
-    window.categoriesLoaded = false;
-
-    async function loadCategoriesFromGitHub() {
-      try {
-        const indexUrl = 'https://raw.githubusercontent.com/absa232/retrohub/main/categories/index.json';
-        const response = await fetch(indexUrl, { cache: 'no-store' });
-        if (!response.ok) throw new Error('Failed to load categories index');
-        
-        const indexData = await response.json();
-        window.ARCHIVE_CATEGORIES = indexData.categories || [];
-        window.categoriesLoaded = true;
-        console.log('Categories loaded from GitHub:', window.ARCHIVE_CATEGORIES);
-        return window.ARCHIVE_CATEGORIES;
-      } catch (err) {
-        console.error('Failed to load categories from GitHub:', err);
-        window.categoriesLoaded = false;
-        return [];
-      }
-    }
-
-    // Create a small dropdown for account actions inside the existing profile badge
-    (function createProfileDropdown(){
-      const profile = document.getElementById('user-profile');
-      if (!profile) return;
-      const menu = document.createElement('div');
-      menu.id = 'profile-dropdown';
-      menu.style.position = 'absolute';
-      menu.style.right = '20px';
-      menu.style.top = '70px';
-      menu.style.background = 'var(--card-bg)';
-      menu.style.border = '1px solid rgba(255,255,255,0.06)';
-      menu.style.borderRadius = '8px';
-      menu.style.display = 'none';
-      menu.style.zIndex = 10001;
-      menu.innerHTML = `
-        <div style="padding:8px 12px; cursor:pointer; color:var(--text); font-size:0.95rem;" id="change-account">🔄 Change Account</div>
-        <div style="padding:8px 12px; cursor:pointer; color:var(--accent); font-size:0.95rem;" id="log-out">🚪 Log Out</div>
-      `;
-      document.body.appendChild(menu);
-
-      profile.style.position = 'relative';
-      profile.addEventListener('click', (e) => {
-        e.stopPropagation();
-        menu.style.display = (menu.style.display === 'none') ? 'block' : 'none';
-      });
-      document.addEventListener('click', () => menu.style.display = 'none');
-
-      document.getElementById('change-account').addEventListener('click', () => {
-        menu.style.display = 'none';
-        changeAccount();
-      });
-      document.getElementById('log-out').addEventListener('click', () => {
-        menu.style.display = 'none';
-        logout();
-      });
-    })();
-
-    // Change account (uses modular Firebase auth already initialized in-page)
-    async function changeAccount() {
-      if (window.loginAndEnter) {
-        try { await window.loginAndEnter(); } catch (e) { console.error('Change account failed', e); }
-      } else {
-        alert('Authentication is not ready yet. Please try again.');
-      }
-    }
-
-    async function logout() {
-      try {
-        if (window.auth && typeof window.auth.signOut === 'function') {
-          await window.auth.signOut();
-        }
-        localStorage.removeItem('arcade_logged_in');
-        window.currentUser = null;
-        window.history.replaceState({}, '', '/');
-        location.reload();
-      } catch (err) {
-        console.error('Logout failed', err);
-      }
-    }
-
-    async function fetchArchiveCategory(categoryInfo) {
-      const categoryId = categoryInfo.id || categoryInfo.file.replace('.json', '');
-      const inferredSystem = (categoryInfo.system || categoryId || categoryInfo.file || '')
-        .toLowerCase()
-        .replace(/^retrohub-roms-/, '')
-        .split('_')[0]
-        .trim();
-      const systemKey = inferredSystem || 'snes';
-      const categoryJsonFile = categoryInfo.file;
-
-      const categoryUrl = `https://raw.githubusercontent.com/absa232/retrohub/main/categories/${categoryJsonFile}`;
-      const response = await fetch(categoryUrl, { cache: 'no-store' });
-      if (!response.ok) {
-        throw new Error(`Failed to load ${categoryId}. Please try again later.`);
-      }
-
-      const categoryData = await response.json();
-      const games = Array.isArray(categoryData.games) ? categoryData.games : [];
-
-      const systemData = SYSTEM_MAP[systemKey] || {
-        system: systemKey,
-        core: categoryData.core || systemKey,
-        name: categoryData.name || categoryId.toUpperCase(),
-        emoji: categoryData.emoji || '🎮'
-      };
-
-      return {
-        systemKey,
-        systemData,
-        games,
-        categoryId,
-        categoryData
-      };
-    }
-
-    async function fetchArcadeLibrary() {
-      if (window.__arcadeLibraryLoading) {
-        return;
-      }
-
-      const container = document.getElementById('games-container');
-      if (!container) return;
-
-      window.__arcadeLibraryLoading = true;
-      window.__arcadeLibraryLoaded = false;
-      container.innerHTML = '';
-      window.__gamesIndex = {};
-      window.__gamesSlugIndex = {};
-
-      try {
-        // Load categories from GitHub first
-        if (!window.categoriesLoaded) {
-          await loadCategoriesFromGitHub();
-        }
-
-        if (!window.ARCHIVE_CATEGORIES || !window.ARCHIVE_CATEGORIES.length) {
-          container.innerHTML = '<div id="loading-games-msg">No game categories have been configured yet.</div>';
-          return;
-        }
-
-        let totalGamesFound = 0;
-
-        for (const categoryInfo of window.ARCHIVE_CATEGORIES) {
-        console.log('Processing category:', categoryInfo);
-        const categoryId = categoryInfo.id;
-        const gridId = `grid-${categoryId}`;
-        const section = document.createElement('div');
-        section.className = 'category-section';
-        section.innerHTML = `
-          <h2 class="category-title">Loading ${categoryId}...</h2>
-          <div class="games-grid" id="${gridId}"></div>
-        `;
-        container.appendChild(section);
-        console.log('Created grid with ID:', gridId, 'Grid exists:', !!section.querySelector(`#${gridId}`));
-
-        try {
-          const { systemKey, systemData, games, categoryData } = await fetchArchiveCategory(categoryInfo);
-          console.log('Fetched category:', categoryId, 'Games:', games.length);
-
-          if (!games.length) {
-            section.querySelector('h2').textContent = categoryData.name || categoryId;
-            const emptyState = document.createElement('div');
-            emptyState.className = 'game-empty';
-            emptyState.textContent = 'This category is currently empty.';
-            section.querySelector(`#${gridId}`).appendChild(emptyState);
-            continue;
-          }
-
-          section.querySelector('h2').textContent = categoryData.name || categoryId;
-          const grid = section.querySelector(`#${gridId}`);
-          console.log('Grid element found:', !!grid, 'For gridId:', gridId);
-
-          games.forEach(game => {
-            const gameTitle = game.title;
-            const romUrl = game.romUrl;
-            const boxartUrl = game.boxartUrl;
-            const resolvedSystemKey = systemKey || systemData.system || 'snes';
-            const launchCore = systemData.core || resolvedSystemKey;
-            const gameIndexKey = `${resolvedSystemKey}_${gameTitle}`;
-            const safeRomUrl = romUrl.replace(/'/g, "\\'");
-
-            window.__gamesIndex[gameIndexKey] = {
-              core: launchCore,
-              romPath: safeRomUrl,
-              title: gameTitle,
-              system: resolvedSystemKey
-            };
-
-            const slugTitle = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-            const slugIndexKey = `${resolvedSystemKey}_${slugTitle}`;
-            window.__gamesSlugIndex[slugIndexKey] = gameIndexKey;
-
-            const card = document.createElement('div');
-            card.className = 'game-card';
-            card.setAttribute('onclick', `launchGame('${launchCore}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
-            const thumbMarkup = boxartUrl
-              ? `<img src="${boxartUrl}" alt="${gameTitle}" onerror="this.style.display='none'; this.parentElement.innerHTML='${systemData.emoji || '🎮'}'; this.parentElement.style.fontSize='2.5rem';"/>`
-              : (systemData.emoji || '🎮');
-            card.innerHTML = `
-              <div class="game-thumb">${thumbMarkup}</div>
-              <h3>${gameTitle}</h3>
-              <p>Click to play!</p>
-            `;
-            grid.appendChild(card);
-            totalGamesFound += 1;
-          });
-        } catch (err) {
-          console.warn('Category load failed:', err);
-          const titleEl = section.querySelector('h2');
-          if (titleEl) titleEl.textContent = categoryId || 'Unknown Category';
-          const message = document.createElement('div');
-          message.className = 'game-empty';
-          message.textContent = err.message || 'This category is temporarily unavailable.';
-          section.querySelector(`#${gridId}`)?.appendChild(message);
-        }
-        }
-
-        if (totalGamesFound === 0) {
-          container.innerHTML = '<div id="loading-games-msg">No games found in the configured categories.</div>';
-        }
-      } finally {
-        window.__arcadeLibraryLoading = false;
-        window.__arcadeLibraryLoaded = true;
-      }
-    }
-
-    function resolvePlayableRomUrl(romPath) {
-      if (!romPath) return romPath;
-
-      const hostname = (window.location.hostname || '').toLowerCase();
-      const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(hostname);
-      const isNetlifyHost = hostname.includes('netlify.app') || hostname.includes('netlify.com');
-      const proxyBaseUrl = isLocalhost ? (window.location.origin || 'http://127.0.0.1:8001') : null;
-
-      try {
-        const url = new URL(romPath);
-        const host = url.hostname.toLowerCase();
-
-        if (host.includes('archive.org')) {
-          const segments = url.pathname.split('/').filter(Boolean);
-          const downloadIndex = segments.indexOf('download');
-          if (downloadIndex >= 0 && segments.length > downloadIndex + 2) {
-            const collectionId = segments[downloadIndex + 1];
-            const fileName = decodeURIComponent(segments.slice(downloadIndex + 2).join('/'));
-            if (proxyBaseUrl) {
-              return `${proxyBaseUrl}/proxy/archive/${collectionId}/${encodeURIComponent(fileName)}`;
-            }
-            if (isNetlifyHost) {
-              return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
-            }
-            return romPath;
-          }
-
-          if (isNetlifyHost) {
-            return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
-          }
-        }
-
-        return romPath;
-      } catch (err) {
-        if (!/^https?:\/\//i.test(romPath) && proxyBaseUrl) {
-          return `${proxyBaseUrl}/proxy/archive/${encodeURIComponent(romPath)}`;
-        }
-        if (isNetlifyHost && /^https?:\/\//i.test(romPath)) {
-          return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
-        }
-        return romPath;
-      }
-    }
-
-
-
-    function destroyCurrentEmulatorSession() {
-      if (window.currentAutoSaveInterval) {
-        clearInterval(window.currentAutoSaveInterval);
-        window.currentAutoSaveInterval = null;
-      }
-
-      if (window.__arcadeSaveHook && window.EJS_emulator) {
-        try {
-          window.EJS_emulator.off?.('saveState', window.__arcadeSaveHook);
-        } catch (e) {
-          console.warn('Remove save hook failed:', e);
-        }
-      }
-
-      if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
-        try {
-          window.EJS_emulator.destroy();
-        } catch (e) {
-          console.warn('Emulator destroy failed:', e);
-        }
-      }
-
-      // Do NOT set window.EmulatorJS = null. The loader script uses it, and we need to
-      // allow it to recreate a new instance when launchGame() runs again.
-
-      const emulatorGlobalsToReset = [
-        'EJS_emulator', 'EJS_loadStateURL', 'EJS_gameID', 'EJS_gameid', 'EJS_gameUrl',
-        'EJS_core', 'EJS_player', 'EJS_pathtodata', 'EJS_onSaveState', 'EJS_startOnLoaded',
-        'EJS_startOnLoad', 'EJS_autosave', 'EJS_autoSave', 'EJS_hideMenubar', 'EJS_disableMobileControls'
-      ];
-
-      emulatorGlobalsToReset.forEach((key) => {
-        try {
-          window[key] = null;
-        } catch (e) {
-          console.warn('Reset emulator global failed:', key, e);
-        }
-      });
-
-      window.__loadedSaveBlob = null;
-      window.__arcadeSaveHook = null;
-      window.__launchLockKey = null;
-      window.__ejsResizeGuardInstalled = false;
-      window.__ejsGameIdGuardInstalled = false;
-      window.__retrohubEjsLoaderReady = false;
-
-      document.querySelectorAll('script[src*="cdn.emulatorjs.org/stable/data/"]').forEach((node) => node.remove());
-      document.querySelectorAll('link[href*="cdn.emulatorjs.org/stable/data/"]').forEach((node) => node.remove());
-
-      const gameNode = document.getElementById('game');
-      if (gameNode) {
-        gameNode.querySelectorAll('canvas, iframe, script, audio, video, object, embed').forEach((node) => node.remove());
-        gameNode.innerHTML = '';
-      }
-    }
-
-    function ensureFreshGameRoot() {
-      const existingGame = document.getElementById('game');
-      if (existingGame && existingGame.parentElement) {
-        const freshGame = document.createElement('div');
-        freshGame.id = 'game';
-        existingGame.parentElement.replaceChild(freshGame, existingGame);
-        return freshGame;
-      }
-
-      const host = document.getElementById('emulator-container') || document.getElementById('player-modal');
-      const freshGame = document.createElement('div');
-      freshGame.id = 'game';
-      if (host) {
-        host.appendChild(freshGame);
-      }
-      return freshGame;
-    }
-
-    // Launch game in a dedicated player page for clean lifecycle
-    async function launchGame(core, romPath, title) {
-      const mappedCore = SYSTEM_MAP[core]?.core || core;
-      console.log('LAUNCH_GAME', { title, mappedCore, uid: window.currentUser?.uid });
-      
-      // Build URL params for player page
-      const params = new URLSearchParams({
-        core: mappedCore,
-        romUrl: romPath,
-        title: title
-      });
-      
-      // Redirect to dedicated player page
-      window.location.href = `player.html?${params.toString()}`;
-      return;
-    }
-
-    // Games now run on player.html in a dedicated page context, so closeGame is no longer needed
-    function closeGame() {
-      // Player page handles all cleanup and returns to index.html on close
-      console.log('closeGame called (no-op - player page manages lifecycle)');
-    }
-
-    window.addEventListener('DOMContentLoaded', () => {
-      // Games library will be loaded when user authenticates via setAuthScreens()
-      console.log('Page loaded, waiting for user authentication');
-    });
   </script>
 </body>
 </html>
