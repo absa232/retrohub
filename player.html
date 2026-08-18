@@ -223,8 +223,12 @@
 
     async function resolvePlayableRomUrl(romPath) {
       if (romPath && romPath.startsWith('https://archive.org')) {
-        // Use Netlify proxy for Archive.org ROMs
-        return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
+        // Netlify can use its proxy; GitHub Pages must use Archive.org directly.
+        const hostname = window.location.hostname.toLowerCase();
+        const isNetlifyHost = hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.com');
+        if (isNetlifyHost) {
+          return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
+        }
       }
       return romPath;
     }
