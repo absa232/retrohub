@@ -135,7 +135,8 @@
       if (user) {
         console.log('Player page: User logged in as', user.uid);
       } else {
-        console.log('Player page: No user logged in');
+        console.log('Player page: No user logged in, redirecting away from protected game page');
+        window.location.href = 'index.html';
       }
     });
 
@@ -303,8 +304,8 @@
         }
       }
 
-      // Return to main page
-      window.location.href = 'index.html';
+      // Return to dashboard page after closing the game
+      window.location.href = 'dashboard.html';
     }
 
     window.closeGame = closeGame;
