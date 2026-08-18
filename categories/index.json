@@ -1,8 +1,8 @@
 {
   "categories": [
+    { "id": "retrohub-roms-megadrive_202608", "file": "megadrive.json" },
     { "id": "retrohub-roms-snes", "file": "snes.json" },
     { "id": "retrohub-roms-gba", "file": "gba.json" },
-    { "id": "retrohub-roms-megadrive_202608", "file": "megadrive.json" },
     { "id": "retrohub-roms-neogeo", "file": "neogeo.json" }
   ]
 }
