@@ -805,6 +805,16 @@
       });
     };
 
+    const normalizeFirestoreGameKey = (gameTitle) => {
+      const raw = String(gameTitle || '').trim();
+      if (!raw) return 'unknown-game';
+      const sanitized = raw
+        .replace(/[\\/\[\]#?]/g, '-')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return sanitized || 'unknown-game';
+    };
+
     const normalizeSavePayload = (input) => {
       if (input == null) return null;
       if (input instanceof Blob) return input;
@@ -855,12 +865,20 @@
     };
 
     window.syncSaveToCloud = async function(saveInput) {
-      console.log('SYNC_SAVE_START', { currentUser: !!window.currentUser, currentGameTitle: window.currentGameTitle, uid: window.currentUser?.uid });
+      const currentTitle = String(window.currentGameTitle || '').trim();
+      console.log('SYNC_SAVE_START', { currentUser: !!window.currentUser, currentGameTitle: currentTitle, uid: window.currentUser?.uid });
 
-      if (!window.currentGameTitle) {
+      if (!currentTitle) {
         console.error('SYNC_FAILED: currentGameTitle is null or undefined');
         return;
       }
+
+      const syncKey = `${window.currentUser?.uid || 'guest'}:${normalizeFirestoreGameKey(currentTitle)}`;
+      if (window.__lastFirestoreSyncKey === syncKey && (Date.now() - (window.__lastFirestoreSyncAt || 0)) < 3000) {
+        return;
+      }
+      window.__lastFirestoreSyncKey = syncKey;
+      window.__lastFirestoreSyncAt = Date.now();
 
       try {
         console.log('NORMALIZING_PAYLOAD', typeof saveInput, saveInput instanceof Uint8Array ? 'Uint8Array' : typeof saveInput);
@@ -872,13 +890,12 @@
           return;
         }
 
-        // Always save locally so progress survives crashes and power loss.
         console.log('SAVING_TO_INDEXEDDB');
-        await saveToIndexedDB(window.currentGameTitle, saveBlob);
+        await saveToIndexedDB(currentTitle, saveBlob);
         console.log('LOCAL_SAVE_COMPLETE - Data is safe locally!');
 
         if (window.cloudSaveEnabled && window.currentUser && window.currentUser.uid) {
-          syncToFirestoreAsync(window.currentGameTitle, saveBlob).catch(err => {
+          syncToFirestoreAsync(currentTitle, saveBlob).catch(err => {
             console.warn('Background Firestore sync failed:', err?.message || err);
           });
         } else {
@@ -897,6 +914,12 @@
         return;
       }
 
+      const safeGameKey = normalizeFirestoreGameKey(gameTitle);
+      if (!safeGameKey || safeGameKey === 'unknown-game') {
+        console.warn('Skipping Firestore sync because the game title is empty.');
+        return;
+      }
+
       try {
         console.log('FIRESTORE_SYNC_STARTING_BACKGROUND');
         const base64Data = await blobToBase64(saveBlob);
@@ -907,12 +930,12 @@
           chunks.push(base64Data.substring(i, i + CHUNK_SIZE));
         }
 
-        console.log('DATA_CHUNKED', { totalChunks: chunks.length });
+        console.log('DATA_CHUNKED', { totalChunks: chunks.length, safeGameKey });
 
         const batch = writeBatch(db);
         const timestamp = Date.now();
 
-        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', gameTitle);
+        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', safeGameKey);
         batch.set(metadataRef, {
           timestamp: timestamp,
           chunkCount: chunks.length,
@@ -921,11 +944,11 @@
         }, { merge: true });
 
         for (let i = 0; i < chunks.length; i++) {
-          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${gameTitle}_chunk_${i}`);
+          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${safeGameKey}_chunk_${i}`);
           batch.set(chunkRef, {
             data: chunks[i],
             index: i,
-            gameTitle: gameTitle,
+            gameTitle: safeGameKey,
             timestamp: timestamp
           });
         }
@@ -940,29 +963,29 @@
     };
 
     window.loadSaveFromCloud = async function() {
-      if (!window.currentGameTitle) return null;
+      const currentTitle = String(window.currentGameTitle || '').trim();
+      if (!currentTitle) return null;
 
       try {
-        // Always try IndexedDB first (instant load if available, works offline and when cloud sync is disabled)
         console.log('Checking IndexedDB for save...');
-        const localSave = await loadFromIndexedDB(window.currentGameTitle);
+        const localSave = await loadFromIndexedDB(currentTitle);
         if (localSave) {
           console.log('Save loaded from IndexedDB (instant)!');
           return localSave;
         }
 
-        // Only try Firestore if cloud sync is enabled AND user is logged in
         if (!window.cloudSaveEnabled || !window.currentUser || !window.currentUser.uid) {
           console.log('Cloud sync disabled or user not logged in, no remote save to load');
           return null;
         }
 
-        console.log('No local save, loading from Firestore...');
-        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
+        const safeGameKey = normalizeFirestoreGameKey(currentTitle);
+        console.log('No local save, loading from Firestore...', { currentTitle, safeGameKey });
+        const metadataRef = doc(db, 'saves', window.currentUser.uid, 'games', safeGameKey);
         const metadataSnap = await getDoc(metadataRef);
 
         if (!metadataSnap.exists()) {
-          console.log('No save found for', window.currentGameTitle);
+          console.log('No save found for', currentTitle, 'using key', safeGameKey);
           return null;
         }
 
@@ -972,7 +995,7 @@
 
         let base64Data = '';
         for (let i = 0; i < chunkCount; i++) {
-          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${window.currentGameTitle}_chunk_${i}`);
+          const chunkRef = doc(db, 'saves', window.currentUser.uid, 'games', `${safeGameKey}_chunk_${i}`);
           const chunkSnap = await getDoc(chunkRef);
           if (chunkSnap.exists()) {
             base64Data += chunkSnap.data().data;
@@ -982,7 +1005,7 @@
         if (!base64Data) return null;
 
         const blob = base64ToBlob(base64Data);
-        saveToIndexedDB(window.currentGameTitle, blob).catch(err => {
+        saveToIndexedDB(currentTitle, blob).catch(err => {
           console.warn('Failed to cache save locally:', err);
         });
 
@@ -1688,11 +1711,12 @@
     }
 
     function closeGame() {
-      console.log('CLOSING_GAME', { title: window.currentGameTitle });
+      const closingTitle = String(window.currentGameTitle || '').trim();
+      console.log('CLOSING_GAME', { title: closingTitle });
 
       const performFinalSave = async () => {
         try {
-          if (window.saveCurrentGameState && typeof window.saveCurrentGameState === 'function') {
+          if (closingTitle && window.saveCurrentGameState && typeof window.saveCurrentGameState === 'function') {
             await window.saveCurrentGameState();
             console.log('FINAL_SAVE_ON_CLOSE');
           }
