@@ -150,10 +150,15 @@
 
     let playerAuthRedirectTimer = null;
     let authStateResolved = false;
+    let resolveAuthState;
+    const authStateReady = new Promise((resolve) => {
+      resolveAuthState = resolve;
+    });
 
     onAuthStateChanged(auth, (user) => {
       authStateResolved = true;
       window.currentUser = user;
+      resolveAuthState(user);
 
       if (user) {
         if (playerAuthRedirectTimer) {
@@ -206,6 +211,15 @@
       if (binaryValue !== null) return binaryValue;
       if (value instanceof Blob) return bytesToBase64(await value.arrayBuffer());
       return value;
+    }
+
+    function base64ToBlobUrl(value) {
+      const binary = atob(value);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index++) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+      return URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
     }
 
     const SAVE_CHUNK_SIZE = 700000;
@@ -284,6 +298,8 @@
       }
 
       try {
+        await authStateReady;
+
         // Prepare game container
         const gameDiv = document.getElementById('game');
         gameDiv.innerHTML = '';
@@ -327,7 +343,9 @@
               }
 
               if (savedState) {
-                window.EJS_loadStateURL = savedState;
+                window.EJS_loadStateURL = saveData.stateFormat === 'chunked-text-v1'
+                  ? base64ToBlobUrl(savedState)
+                  : savedState;
                 console.log('Loaded saved game state');
               }
             }
