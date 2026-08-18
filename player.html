@@ -131,12 +131,12 @@
     import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyCLfvZ55e5Jz_mCKJC9LSLNcqw6uOjrGWs",
+      apiKey: "AIzaSyAeS_FJxXZbbakYuOMhF1MI_1P1Ht8EUwA",
       authDomain: "our-arcade-c417d.firebaseapp.com",
       projectId: "our-arcade-c417d",
-      storageBucket: "our-arcade-c417d.appspot.com",
-      messagingSenderId: "816265903876",
-      appId: "1:816265903876:web:0b9ee75c897d69e7e65c24"
+      storageBucket: "our-arcade-c417d.firebasestorage.app",
+      messagingSenderId: "48063295144",
+      appId: "1:48063295144:web:1bdcb75b600222d8ee5c9d"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -149,10 +149,10 @@
     window.currentUser = null;
 
     let playerAuthRedirectTimer = null;
-    let authCallbackCount = 0;
+    let authStateResolved = false;
 
     onAuthStateChanged(auth, (user) => {
-      authCallbackCount++;
+      authStateResolved = true;
       window.currentUser = user;
 
       if (user) {
@@ -164,18 +164,20 @@
         return;
       }
 
-      // Only redirect after 2+ callbacks to ensure auth has settled and user is truly not logged in
-      if (authCallbackCount >= 2 && !auth.currentUser) {
-        if (playerAuthRedirectTimer) {
-          clearTimeout(playerAuthRedirectTimer);
-        }
-        playerAuthRedirectTimer = setTimeout(() => {
-          if (!auth.currentUser) {
-            console.log('Player page: No user logged in after auth settled, returning to dashboard');
-            window.location.replace('dashboard.html');
-          }
-        }, 500);
+      if (!authStateResolved || auth.currentUser) {
+        return;
       }
+
+      if (playerAuthRedirectTimer) {
+        clearTimeout(playerAuthRedirectTimer);
+      }
+
+      playerAuthRedirectTimer = setTimeout(() => {
+        if (authStateResolved && !auth.currentUser) {
+          console.log('Player page: No user logged in after auth settled, returning to dashboard');
+          window.location.replace('dashboard.html');
+        }
+      }, 500);
     });
 
     // Save handler
