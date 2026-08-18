@@ -223,12 +223,8 @@
 
     async function resolvePlayableRomUrl(romPath) {
       if (romPath && romPath.startsWith('https://archive.org')) {
-        // Netlify can use its proxy; GitHub Pages must use Archive.org directly.
-        const hostname = window.location.hostname.toLowerCase();
-        const isNetlifyHost = hostname.endsWith('.netlify.app') || hostname.endsWith('.netlify.com');
-        if (isNetlifyHost) {
-          return `/.netlify/functions/archive-proxy?url=${encodeURIComponent(romPath)}`;
-        }
+        const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
+        return `${proxyBaseUrl}/?url=${encodeURIComponent(romPath)}`;
       }
       return romPath;
     }
