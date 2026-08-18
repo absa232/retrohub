@@ -208,17 +208,36 @@
       return value;
     }
 
+    const SAVE_CHUNK_SIZE = 700000;
+
     // Save handler
     window.syncSaveToCloud = async (gameState) => {
       if (!window.currentUser || !window.currentGameTitle) return;
       
       try {
-        const serializedState = await serializeSaveState(gameState);
-        const saveRef = doc(db, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
+        let serializedState = await serializeSaveState(gameState);
+        if (typeof serializedState !== 'string') {
+          serializedState = JSON.stringify(serializedState);
+        }
+
+        const saveRef = doc(db, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
+        const chunks = [];
+        for (let index = 0; index < serializedState.length; index += SAVE_CHUNK_SIZE) {
+          chunks.push(serializedState.slice(index, index + SAVE_CHUNK_SIZE));
+        }
+
         await setDoc(saveRef, {
-          state: serializedState,
+          state: null,
+          stateFormat: 'chunked-text-v1',
+          chunkCount: chunks.length,
+          totalLength: serializedState.length,
           timestamp: new Date().toISOString()
         }, { merge: true });
+
+        for (let index = 0; index < chunks.length; index++) {
+          const chunkRef = doc(saveRef, 'chunks', String(index));
+          await setDoc(chunkRef, { index, data: chunks[index] });
+        }
       } catch (err) {
         console.warn('Save to cloud failed:', err?.message || err);
       }
@@ -292,11 +311,25 @@
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
           try {
-            const saveRef = doc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
+            const saveRef = doc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
             const saveSnap = await getDoc(saveRef);
-            if (saveSnap.exists() && saveSnap.data().state) {
-              window.EJS_loadStateURL = saveSnap.data().state;
-              console.log('Loaded saved game state');
+            if (saveSnap.exists()) {
+              const saveData = saveSnap.data();
+              let savedState = saveData.state;
+
+              if (saveData.stateFormat === 'chunked-text-v1' && saveData.chunkCount) {
+                savedState = '';
+                for (let index = 0; index < saveData.chunkCount; index++) {
+                  const chunkSnap = await getDoc(doc(saveRef, 'chunks', String(index)));
+                  if (!chunkSnap.exists()) throw new Error(`Missing save chunk ${index}`);
+                  savedState += chunkSnap.data().data || '';
+                }
+              }
+
+              if (savedState) {
+                window.EJS_loadStateURL = savedState;
+                console.log('Loaded saved game state');
+              }
             }
           } catch (err) {
             console.warn('Save load failed:', err?.message || err);
