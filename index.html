@@ -217,11 +217,37 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 24px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .app-logo {
+      width: 140px;
+      height: 120px;
+      object-fit: contain;
+      flex-shrink: 0;
+      background: transparent;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      display: block;
+    }
+
+    .header-info {
+      min-width: 0;
     }
 
     .header-info h1 {
       font-size: 2.2rem;
       color: var(--accent);
+      line-height: 1.1;
     }
 
     .header-info p {
@@ -282,7 +308,7 @@
 
     .games-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
       gap: 20px;
     }
 
@@ -294,6 +320,9 @@
       transition: transform 0.2s, box-shadow 0.2s;
       border: 1px solid rgba(255, 255, 255, 0.05);
       text-align: center;
+      min-height: 310px;
+      display: flex;
+      flex-direction: column;
     }
 
     .game-card:hover {
@@ -304,9 +333,9 @@
 
     .game-thumb {
       width: 100%;
-      height: 140px;
-      background-color: #121212;
-      border-radius: 8px;
+      height: 180px;
+      background-color: transparent;
+      border-radius: 18px;
       margin-bottom: 12px;
       display: flex;
       justify-content: center;
@@ -314,12 +343,26 @@
       font-size: 2.5rem;
       font-family: 'Noto Color Emoji', sans-serif;
       color: var(--subtext);
-      object-fit: cover;
+      overflow: hidden;
+      border: none;
+    }
+
+    .game-thumb img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      background: transparent;
+      border-radius: 18px;
+      padding: 0;
+      border: none;
+      box-shadow: none;
     }
 
     .game-card h3 {
       font-size: 1.1rem;
       margin-bottom: 5px;
+      line-height: 1.3;
     }
 
     .game-card p {
@@ -415,9 +458,15 @@
   <!-- MAIN DASHBOARD -->
   <div class="dashboard">
     <header>
-      <div class="header-info">
-        <h1>Our Co-Op Corner</h1>
-        <p id="user-greeting">Pick a game and let's play together!</p>
+      <div class="header-brand">
+        <img
+          class="app-logo"
+          src="https://raw.githubusercontent.com/absa232/retrohub/refs/heads/main/logo/app-logo.png"
+          alt="RetroHub logo"
+        />
+        <div class="header-info" aria-hidden="true">
+          <span style="display:none">RetroHub</span>
+        </div>
       </div>
 
       <!-- Profile Badge (Top Right) -->
@@ -471,6 +520,9 @@
     window.currentUser = null;
     window.currentGameTitle = "";
     window.cloudSaveEnabled = true;
+    window.__arcadeLibraryLoading = false;
+    window.__arcadeLibraryLoaded = false;
+    window.__launchLockKey = null;
 
     function getLocalAvatarDataUri(name = 'Guest') {
       const initials = (name || 'G').trim().charAt(0).toUpperCase();
@@ -536,10 +588,12 @@
         dashboard.classList.toggle('hidden', !isAuthenticated);
       }
       
-      // Load games library when transitioning to authenticated state
+      // Load games library once per authenticated session to avoid repeated fetch loops.
       if (isAuthenticated && typeof fetchArcadeLibrary === 'function') {
-        console.log('AUTH_TRANSITION: Loading arcade library');
-        fetchArcadeLibrary();
+        if (!window.__arcadeLibraryLoading && !window.__arcadeLibraryLoaded) {
+          console.log('AUTH_TRANSITION: Loading arcade library');
+          fetchArcadeLibrary();
+        }
       }
     }
 
@@ -551,9 +605,10 @@
         localStorage.removeItem('arcade_logged_in');
       }
 
-      document.getElementById('user-greeting').innerText = user
-        ? `Welcome back! Pick a game and let's play together!`
-        : `Pick a game and let's play together!`;
+      const greetingEl = document.getElementById('user-greeting');
+      if (greetingEl) {
+        greetingEl.innerText = '';
+      }
 
       updateWelcomeButton(user);
 
@@ -1057,26 +1112,33 @@
     }
 
     async function fetchArcadeLibrary() {
+      if (window.__arcadeLibraryLoading) {
+        return;
+      }
+
       const container = document.getElementById('games-container');
       if (!container) return;
 
+      window.__arcadeLibraryLoading = true;
+      window.__arcadeLibraryLoaded = false;
       container.innerHTML = '';
       window.__gamesIndex = {};
       window.__gamesSlugIndex = {};
 
-      // Load categories from GitHub first
-      if (!window.categoriesLoaded) {
-        await loadCategoriesFromGitHub();
-      }
+      try {
+        // Load categories from GitHub first
+        if (!window.categoriesLoaded) {
+          await loadCategoriesFromGitHub();
+        }
 
-      if (!window.ARCHIVE_CATEGORIES || !window.ARCHIVE_CATEGORIES.length) {
-        container.innerHTML = '<div id="loading-games-msg">No game categories have been configured yet.</div>';
-        return;
-      }
+        if (!window.ARCHIVE_CATEGORIES || !window.ARCHIVE_CATEGORIES.length) {
+          container.innerHTML = '<div id="loading-games-msg">No game categories have been configured yet.</div>';
+          return;
+        }
 
-      let totalGamesFound = 0;
+        let totalGamesFound = 0;
 
-      for (const categoryInfo of window.ARCHIVE_CATEGORIES) {
+        for (const categoryInfo of window.ARCHIVE_CATEGORIES) {
         console.log('Processing category:', categoryInfo);
         const categoryId = categoryInfo.id;
         const gridId = `grid-${categoryId}`;
@@ -1130,7 +1192,7 @@
             card.className = 'game-card';
             card.setAttribute('onclick', `launchGameWithRoute('${launchCore}', '${resolvedSystemKey}', '${safeRomUrl}', ${JSON.stringify(gameTitle)})`);
             const thumbMarkup = boxartUrl
-              ? `<img src="${boxartUrl}" alt="${gameTitle}" style="width:100%; height:100%; object-fit:cover; border-radius:8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='${systemData.emoji || '🎮'}'; this.parentElement.style.fontSize='2.5rem';"/>`
+              ? `<img src="${boxartUrl}" alt="${gameTitle}" onerror="this.style.display='none'; this.parentElement.innerHTML='${systemData.emoji || '🎮'}'; this.parentElement.style.fontSize='2.5rem';"/>`
               : (systemData.emoji || '🎮');
             card.innerHTML = `
               <div class="game-thumb">${thumbMarkup}</div>
@@ -1149,43 +1211,53 @@
           message.textContent = err.message || 'This category is temporarily unavailable.';
           section.querySelector(`#${gridId}`)?.appendChild(message);
         }
-      }
+        }
 
-      if (totalGamesFound === 0) {
-        container.innerHTML = '<div id="loading-games-msg">No games found in the configured categories.</div>';
-      }
+        if (totalGamesFound === 0) {
+          container.innerHTML = '<div id="loading-games-msg">No games found in the configured categories.</div>';
+        }
 
-      if (window.__autoLoadGame) {
-        const { system, gameTitle } = window.__autoLoadGame;
-        const urlSlug = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const slugIndexKey = `${system}_${urlSlug}`;
+        if (window.__autoLoadGame) {
+          const { system, gameTitle } = window.__autoLoadGame;
+          const urlSlug = gameTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+          const slugIndexKey = `${system}_${urlSlug}`;
 
-        let gameIndexKey = null;
-        if (window.__gamesSlugIndex && window.__gamesSlugIndex[slugIndexKey]) {
-          gameIndexKey = window.__gamesSlugIndex[slugIndexKey];
-        } else {
-          gameIndexKey = `${system}_${gameTitle}`;
-          if (!window.__gamesIndex[gameIndexKey]) {
-            gameIndexKey = null;
+          let gameIndexKey = null;
+          if (window.__gamesSlugIndex && window.__gamesSlugIndex[slugIndexKey]) {
+            gameIndexKey = window.__gamesSlugIndex[slugIndexKey];
+          } else {
+            gameIndexKey = `${system}_${gameTitle}`;
+            if (!window.__gamesIndex[gameIndexKey]) {
+              gameIndexKey = null;
+            }
           }
+
+          const gameInfo = gameIndexKey ? window.__gamesIndex[gameIndexKey] : null;
+
+          if (gameInfo) {
+            const requestedKey = `${system}|${gameInfo.title}|${gameInfo.core}|${gameInfo.romPath}`;
+            if (window.__launchLockKey !== requestedKey) {
+              setTimeout(() => {
+                launchGame(gameInfo.core, gameInfo.romPath, gameInfo.title);
+              }, 500);
+            }
+          } else {
+            console.warn('AUTO_LOAD_GAME_NOT_FOUND', { system, gameTitle, slugIndexKey, availableKeys: Object.keys(window.__gamesIndex) });
+          }
+
+          window.__autoLoadGame = null;
         }
-
-        const gameInfo = gameIndexKey ? window.__gamesIndex[gameIndexKey] : null;
-
-        if (gameInfo) {
-          setTimeout(() => {
-            launchGame(gameInfo.core, gameInfo.romPath, gameInfo.title);
-          }, 500);
-        } else {
-          console.warn('AUTO_LOAD_GAME_NOT_FOUND', { system, gameTitle, slugIndexKey, availableKeys: Object.keys(window.__gamesIndex) });
-        }
-
-        window.__autoLoadGame = null;
+      } finally {
+        window.__arcadeLibraryLoading = false;
+        window.__arcadeLibraryLoaded = true;
       }
     }
 
     function resolvePlayableRomUrl(romPath) {
       if (!romPath) return romPath;
+
+      const isLocalhost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+      const proxyBaseUrl = isLocalhost ? (window.location.origin || 'http://127.0.0.1:8001') : null;
 
       try {
         const url = new URL(romPath);
@@ -1197,14 +1269,17 @@
           if (downloadIndex >= 0 && segments.length > downloadIndex + 2) {
             const collectionId = segments[downloadIndex + 1];
             const fileName = decodeURIComponent(segments.slice(downloadIndex + 2).join('/'));
-            return `${'http://127.0.0.1:8001'}/proxy/archive/${collectionId}/${encodeURIComponent(fileName)}`;
+            if (proxyBaseUrl) {
+              return `${proxyBaseUrl}/proxy/archive/${collectionId}/${encodeURIComponent(fileName)}`;
+            }
+            return romPath;
           }
         }
 
         return romPath;
       } catch (err) {
-        if (!/^https?:\/\//i.test(romPath)) {
-          return `${'http://127.0.0.1:8001'}/proxy/archive/${romPath}`;
+        if (!/^https?:\/\//i.test(romPath) && proxyBaseUrl) {
+          return `${proxyBaseUrl}/proxy/archive/${encodeURIComponent(romPath)}`;
         }
         return romPath;
       }
@@ -1213,14 +1288,68 @@
     // Wrapper function to handle URL routing before launching game
     async function launchGameWithRoute(core, system, romPath, title) {
       const encodedTitle = encodeURIComponent(title);
+      const routeKey = `${system}|${title}|${core}|${romPath}`;
+      if (window.__launchLockKey === routeKey) {
+        return;
+      }
       window.history.pushState({}, '', `/play/${system}/${encodedTitle}`);
       await launchGame(core, romPath, title);
+    }
+
+    function destroyCurrentEmulatorSession() {
+      if (window.currentAutoSaveInterval) {
+        clearInterval(window.currentAutoSaveInterval);
+        window.currentAutoSaveInterval = null;
+      }
+
+      if (window.__arcadeSaveHook && window.EJS_emulator) {
+        try {
+          window.EJS_emulator.off?.('saveState', window.__arcadeSaveHook);
+        } catch (e) {
+          console.warn('Remove save hook failed:', e);
+        }
+      }
+
+      if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
+        try {
+          window.EJS_emulator.destroy();
+        } catch (e) {
+          console.warn('Emulator destroy failed:', e);
+        }
+      }
+
+      // Keep the EmulatorJS loader singleton intact. Deleting EJS_STORAGE / EmulatorJS breaks
+      // the active runtime and creates the null DOM resize crash when the next game boots.
+      window.EJS_emulator = null;
+      window.EJS_loadStateURL = null;
+      window.__loadedSaveBlob = null;
+      window.__arcadeSaveHook = null;
+      window.__launchLockKey = null;
+      window.__ejsResizeGuardInstalled = false;
+      window.__ejsGameIdGuardInstalled = false;
+
+      const gameNode = document.getElementById('game');
+      if (gameNode) {
+        gameNode.innerHTML = '';
+      }
     }
 
     // Unified emulator launcher: set EJS_* globals then append loader.js
     async function launchGame(core, romPath, title) {
       const mappedCore = SYSTEM_MAP[core]?.core || core;
+      const launchKey = `${mappedCore}|${title}|${romPath}`;
 
+      if (window.__launchLockKey === launchKey) {
+        return;
+      }
+
+      // One active emulator session per page. If a previous launch was closed, the old loader
+      // and globals must be cleared before booting the next game.
+      if (window.__retrohubEjsLoaderReady && document.querySelector('script[src*="cdn.emulatorjs.org/stable/data/loader.js"]')) {
+        destroyCurrentEmulatorSession();
+      }
+
+      window.__launchLockKey = launchKey;
       window.currentGameTitle = title;
       console.log('LAUNCH_GAME', { title, mappedCore, uid: window.currentUser?.uid });
       document.getElementById('modal-title').innerText = title;
@@ -1352,14 +1481,19 @@
       window.__ejsResizeGuardInstalled = false;
       window.__ejsGameIdGuardInstalled = false;
 
-      const existingLoader = document.querySelector('script[src="https://cdn.emulatorjs.org/stable/data/loader.js"]');
-      if (existingLoader) {
-        existingLoader.remove();
+      // EmulatorJS loader.js cannot be executed twice in the same page context without
+      // causing duplicate globals such as EJS_STORAGE. Do not remove the loader on close;
+      // we only replace the active emulator instance, which keeps the runtime stable.
+      const existingLoader = document.querySelector('script[src*="cdn.emulatorjs.org/stable/data/loader.js"]');
+      if (window.__retrohubEjsLoaderReady && existingLoader) {
+        console.debug('EMULATORJS_LOADER_ALREADY_INITIALIZED; preparing a clean emulator swap.');
+      } else if (!existingLoader) {
+        const ejsScript = document.createElement('script');
+        ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
+        ejsScript.async = false;
+        document.body.appendChild(ejsScript);
       }
-      const ejsScript = document.createElement('script');
-      ejsScript.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-      ejsScript.async = false;
-      document.body.appendChild(ejsScript);
+      window.__retrohubEjsLoaderReady = true;
 
       function patchEjsResizeGuard() {
         if (!window.EmulatorJS || window.__ejsResizeGuardInstalled) {
@@ -1512,11 +1646,6 @@
     function closeGame() {
       console.log('CLOSING_GAME', { title: window.currentGameTitle });
 
-      if (window.currentAutoSaveInterval) {
-        clearInterval(window.currentAutoSaveInterval);
-        window.currentAutoSaveInterval = null;
-      }
-
       const performFinalSave = async () => {
         try {
           if (window.saveCurrentGameState && typeof window.saveCurrentGameState === 'function') {
@@ -1537,31 +1666,10 @@
           }
         }
 
-        if (window.__arcadeSaveHook && window.EJS_emulator) {
-          try {
-            window.EJS_emulator.off?.('saveState', window.__arcadeSaveHook);
-          } catch (e) {
-            console.warn('Remove save hook failed:', e);
-          }
-        }
-
-        if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
-          try {
-            window.EJS_emulator.destroy();
-            console.log('EMULATOR_DESTROYED');
-          } catch (e) {
-            console.warn('Emulator destroy failed:', e);
-          }
-        }
-
-        window.EJS_emulator = null;
-        window.__loadedSaveBlob = null;
-        window.__arcadeSaveHook = null;
+        destroyCurrentEmulatorSession();
 
         const modal = document.getElementById('player-modal');
         if (modal) modal.classList.remove('active');
-        const gameNode = document.getElementById('game');
-        if (gameNode) gameNode.innerHTML = '';
 
         window.currentGameTitle = "";
 
