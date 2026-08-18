@@ -486,8 +486,7 @@
     }
 
     window.loginAndEnter = async function() {
-      // Welcome page is now separate - this function is not used in index.html
-      console.log('loginAndEnter called (welcome page now separate)');
+      console.log('loginAndEnter called');
     };
 
     function showAccessDenied() {
@@ -1192,10 +1191,9 @@
       return;
     }
 
-    // Games now run on player.html in a dedicated page context, so closeGame is no longer needed
+    // Games now run on player.html in a dedicated page context.
     function closeGame() {
-      // Player page handles all cleanup and returns to index.html on close
-      console.log('closeGame called (no-op - player page manages lifecycle)');
+      console.log('closeGame called; player page manages lifecycle');
     }
 
     window.addEventListener('DOMContentLoaded', () => {

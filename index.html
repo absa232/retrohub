@@ -247,15 +247,15 @@
     window.loginAndEnter = async function() {
       const isLocalFile = location.protocol === 'file:';
 
-      // Already logged in: redirect to index.html
+      // Already logged in: redirect to dashboard.html
       if (auth.currentUser) {
-        window.location.href = 'index.html';
+        window.location.href = 'dashboard.html';
         return;
       }
 
       if (isLocalFile) {
-        // Local file: go to index.html in guest mode
-        window.location.href = 'index.html';
+        // Local file: go to dashboard.html in guest mode
+        window.location.href = 'dashboard.html';
         return;
       }
 
@@ -263,8 +263,8 @@
 
       try {
         const result = await signInWithPopup(auth, provider);
-        // After successful login, redirect to index.html
-        window.location.href = 'index.html';
+        // After successful login, redirect to dashboard.html
+        window.location.href = 'dashboard.html';
       } catch (error) {
         if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/popup-blocked') {
           console.log('User cancelled login');
@@ -274,7 +274,7 @@
 
         if (error && (error.code === 'auth/unauthorized-domain' || error.code === 'auth/invalid-domain')) {
           console.warn('Firebase domain is not authorized for this deployment.');
-          window.location.href = 'index.html';
+          window.location.href = 'dashboard.html';
           return;
         }
         
