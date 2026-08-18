@@ -154,6 +154,7 @@
     const authStateReady = new Promise((resolve) => {
       resolveAuthState = resolve;
     });
+    window.authStateReady = authStateReady;
 
     onAuthStateChanged(auth, (user) => {
       authStateResolved = true;
@@ -316,7 +317,7 @@
       }
 
       try {
-        await authStateReady;
+        await window.authStateReady;
 
         // Prepare game container
         const gameDiv = document.getElementById('game');
