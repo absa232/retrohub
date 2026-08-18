@@ -271,6 +271,10 @@
       return result;
     }
 
+    window.saveStateLocally = saveStateLocally;
+    window.loadStateLocally = loadStateLocally;
+    window.base64ToBytes = base64ToBytes;
+
     // Save handler
     window.syncSaveToCloud = async (gameState) => {
       if (!window.currentUser || !window.currentGameTitle) return;
@@ -427,7 +431,7 @@
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
           try {
-            let savedState = await loadStateLocally(window.currentGameTitle);
+            let savedState = await window.loadStateLocally(window.currentGameTitle);
             let saveData = { stateFormat: 'chunked-text-v1' };
 
             if (savedState) {
@@ -456,7 +460,7 @@
                 }
 
                 if (savedState) {
-                  await saveStateLocally(window.currentGameTitle, savedState);
+                  await window.saveStateLocally(window.currentGameTitle, savedState);
                   console.log('Loaded saved game state from Firestore and cached locally');
                 }
               }
@@ -464,7 +468,7 @@
 
             if (savedState) {
               if (saveData.stateFormat === 'chunked-text-v1') {
-                window.__pendingSavedStateBytes = base64ToBytes(savedState);
+                window.__pendingSavedStateBytes = window.base64ToBytes(savedState);
               } else {
                 window.EJS_loadStateURL = savedState;
               }
