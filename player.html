@@ -149,8 +149,10 @@
     window.currentUser = null;
 
     let playerAuthRedirectTimer = null;
+    let authCallbackCount = 0;
 
     onAuthStateChanged(auth, (user) => {
+      authCallbackCount++;
       window.currentUser = user;
 
       if (user) {
@@ -162,16 +164,18 @@
         return;
       }
 
-      if (playerAuthRedirectTimer) {
-        clearTimeout(playerAuthRedirectTimer);
-      }
-
-      playerAuthRedirectTimer = setTimeout(() => {
-        if (!auth.currentUser) {
-          console.log('Player page: No user logged in after auth settled, returning to dashboard');
-          window.location.replace('dashboard.html');
+      // Only redirect after 2+ callbacks to ensure auth has settled and user is truly not logged in
+      if (authCallbackCount >= 2 && !auth.currentUser) {
+        if (playerAuthRedirectTimer) {
+          clearTimeout(playerAuthRedirectTimer);
         }
-      }, 500);
+        playerAuthRedirectTimer = setTimeout(() => {
+          if (!auth.currentUser) {
+            console.log('Player page: No user logged in after auth settled, returning to dashboard');
+            window.location.replace('dashboard.html');
+          }
+        }, 500);
+      }
     });
 
     // Save handler
