@@ -69,6 +69,23 @@
     .close-btn:hover {
       filter: brightness(1.06);
     }
+
+    .ejs_virtualGamepad_parent,
+    .ejs_virtualGamepad_top,
+    .ejs_virtualGamepad_bottom,
+    .ejs_virtualGamepad_left,
+    .ejs_virtualGamepad_right,
+    .ejs_virtualGamepad_button,
+    .ejs_dpad_main,
+    .ejs_dpad_vertical,
+    .ejs_dpad_horizontal,
+    .ejs_dpad_bar,
+    [class*="virtualGamepad"],
+    [class*="dpad"] {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
     
     .loading {
       position: absolute;
@@ -114,7 +131,7 @@
   <div id="game-container">
     <div class="top-bar">
       <div class="game-title" id="game-title">Loading...</div>
-      <button class="close-btn" onclick="closeGame()">Close & Return</button>
+      <button class="close-btn" onclick="closeGame()">Save & Close</button>
     </div>
     <div id="game"></div>
     <div class="loading" id="loading-indicator">
@@ -408,6 +425,7 @@
         window.EJS_defaultControls = { 0: {}, 1: {}, 2: {}, 3: {} };
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
+        window.EJS_VirtualGamepadSettings = [];
 
         // Save handler
         window.EJS_onSaveState = (data) => {
