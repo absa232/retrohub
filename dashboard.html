@@ -317,7 +317,7 @@
   </style>
 </head>
 <body>
-  <div id="access-denied" style="display:none; min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#2a0845 0%, #6441a5 100%); padding:24px; text-align:center;">
+  <div id="access-denied" style="display:none; min-height:100vh; align-items:center; justify-content:center; background:linear-gradient(135deg,#2a0845 0%, #6441a5 100%); padding:24px; text-align:center;">
     <div style="max-width:520px; background:rgba(31,30,46,0.9); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:32px 26px; box-shadow:0 20px 50px rgba(0,0,0,0.35);">
       <div style="font-size:52px; margin-bottom:12px;">🚫</div>
       <h2 style="font-size:2rem; color:#ff8ba7; margin-bottom:12px;">Access denied</h2>
@@ -395,6 +395,7 @@
     window.__arcadeLibraryLoaded = false;
     window.__launchLockKey = null;
     window.__guestMode = false;
+    window.__authStateResolved = false;
 
     function forceGuestSession() {
       window.__guestMode = true;
@@ -497,8 +498,20 @@
       console.log('Dashboard access denied: user not signed in');
     }
 
+    let authGateTimer = null;
+
+    function clearAuthGateTimer() {
+      if (authGateTimer) {
+        clearTimeout(authGateTimer);
+        authGateTimer = null;
+      }
+    }
+
     onAuthStateChanged(auth, (user) => {
+      window.__authStateResolved = true;
+
       if (user) {
+        clearAuthGateTimer();
         window.currentUser = user || null;
         updateUserUI(user);
         const dashboard = document.querySelector('.dashboard');
@@ -506,10 +519,20 @@
         if (dashboard) dashboard.style.display = 'block';
         if (denied) denied.style.display = 'none';
         console.log('Existing user detected, showing dashboard');
-      } else {
-        window.currentUser = null;
-        showAccessDenied();
+        return;
       }
+
+      clearAuthGateTimer();
+      authGateTimer = setTimeout(() => {
+        if (!auth.currentUser) {
+          window.currentUser = null;
+          const dashboard = document.querySelector('.dashboard');
+          const denied = document.getElementById('access-denied');
+          if (dashboard) dashboard.style.display = 'none';
+          if (denied) denied.style.display = 'flex';
+          console.log('Auth settled: no user, access denied page shown');
+        }
+      }, 500);
     });
 
     // Expose auth and provider for non-module scripts (profile dropdown handlers)

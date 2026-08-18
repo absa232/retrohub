@@ -130,14 +130,30 @@
     window.firebaseDb = db;
     window.currentUser = null;
 
+    let playerAuthRedirectTimer = null;
+
     onAuthStateChanged(auth, (user) => {
       window.currentUser = user;
+
       if (user) {
+        if (playerAuthRedirectTimer) {
+          clearTimeout(playerAuthRedirectTimer);
+          playerAuthRedirectTimer = null;
+        }
         console.log('Player page: User logged in as', user.uid);
-      } else {
-        console.log('Player page: No user logged in, redirecting away from protected game page');
-        window.location.href = 'index.html';
+        return;
       }
+
+      if (playerAuthRedirectTimer) {
+        clearTimeout(playerAuthRedirectTimer);
+      }
+
+      playerAuthRedirectTimer = setTimeout(() => {
+        if (!auth.currentUser) {
+          console.log('Player page: No user logged in after auth settled, returning to dashboard');
+          window.location.replace('dashboard.html');
+        }
+      }, 500);
     });
 
     // Save handler
