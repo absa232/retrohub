@@ -421,6 +421,22 @@
       return 'segaMD';
     }
 
+    // Clears any stale/empty control entries from localStorage that block defaultControls
+    function sanitizeControlCache() {
+      try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('EJS') || key.includes('controls') || key.includes('settings'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {
+        console.warn('Control cache reset warning:', e);
+      }
+    }
+
     async function resolvePlayableRomUrl(romPath) {
       if (romPath && romPath.startsWith('https://archive.org')) {
         const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
@@ -437,6 +453,9 @@
 
       try {
         await window.authStateReady;
+
+        // Clear stale local control cache so custom defaultControls applies
+        sanitizeControlCache();
 
         // Prepare game container
         const gameDiv = document.getElementById('game');
@@ -458,20 +477,35 @@
         // Specify system control scheme (e.g. segaMD, snes, nes, gba, etc.)
         window.EJS_controlScheme = getControlScheme(gameCore);
 
-        // Define exact 6-button controls for Mega Drive & default systems
+        // Pre-map keys using standard KeyboardEvent.code string values
         window.EJS_defaultControls = {
-          0: { value: 'arrowup', value2: '' },
-          1: { value: 'arrowdown', value2: '' },
-          2: { value: 'arrowleft', value2: '' },
-          3: { value: 'arrowright', value2: '' },
-          4: { value: 'z', value2: '' },      // A
-          5: { value: 'x', value2: '' },      // B
-          6: { value: 'c', value2: '' },      // C
-          7: { value: 'a', value2: '' },      // X
-          8: { value: 's', value2: '' },      // Y
-          9: { value: 'd', value2: '' },      // Z
-          10: { value: 'enter', value2: '' }, // Start
-          11: { value: 'shift', value2: '' }  // Mode / Select
+          0: { value: 'ArrowUp', value2: '' },
+          1: { value: 'ArrowDown', value2: '' },
+          2: { value: 'ArrowLeft', value2: '' },
+          3: { value: 'ArrowRight', value2: '' },
+          4: { value: 'KeyZ', value2: '' },       // A -> Z
+          5: { value: 'KeyX', value2: '' },       // B -> X
+          6: { value: 'KeyC', value2: '' },       // C -> C
+          7: { value: 'KeyA', value2: '' },       // X -> A
+          8: { value: 'KeyS', value2: '' },       // Y -> S
+          9: { value: 'KeyD', value2: '' },       // Z -> D
+          10: { value: 'Enter', value2: '' },     // Start -> Enter
+          11: { value: 'ShiftLeft', value2: '' }, // Mode / Select -> Shift
+
+          // String fallback keys
+          'up': { value: 'ArrowUp', value2: '' },
+          'down': { value: 'ArrowDown', value2: '' },
+          'left': { value: 'ArrowLeft', value2: '' },
+          'right': { value: 'ArrowRight', value2: '' },
+          'a': { value: 'KeyZ', value2: '' },
+          'b': { value: 'KeyX', value2: '' },
+          'c': { value: 'KeyC', value2: '' },
+          'x': { value: 'KeyA', value2: '' },
+          'y': { value: 'KeyS', value2: '' },
+          'z': { value: 'KeyD', value2: '' },
+          'start': { value: 'Enter', value2: '' },
+          'mode': { value: 'ShiftLeft', value2: '' },
+          'select': { value: 'ShiftLeft', value2: '' }
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
