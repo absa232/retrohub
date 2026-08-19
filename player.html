@@ -458,21 +458,21 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // RetroArch Index Mapping matching the UI rows directly:
+        // RetroArch Index Mapping with object value structures:
         // 0: B, 1: Y, 2: SELECT, 3: START, 4: UP, 5: DOWN, 6: LEFT, 7: RIGHT, 8: A, 9: X, 10: L, 11: R
         window.EJS_defaultControls = {
-          0: 'KeyX',        // B: Mega Drive B -> Keyboard X
-          1: 'KeyS',        // Y: Mega Drive Y -> Keyboard S
-          2: 'ShiftLeft',   // SELECT: Mode -> Keyboard Shift
-          3: 'Enter',       // START: Start -> Keyboard Enter
-          4: 'ArrowUp',     // UP: D-Pad Up -> Up Arrow
-          5: 'ArrowDown',   // DOWN: D-Pad Down -> Down Arrow
-          6: 'ArrowLeft',   // LEFT: D-Pad Left -> Left Arrow
-          7: 'ArrowRight',  // RIGHT: D-Pad Right -> Right Arrow
-          8: 'KeyZ',        // A: Mega Drive A -> Keyboard Z
-          9: 'KeyA',        // X: Mega Drive X -> Keyboard A
-          10: 'KeyC',       // L: Mega Drive C -> Keyboard C
-          11: 'KeyD'        // R: Mega Drive Z -> Keyboard D
+          0: { value: 'KeyX', value2: '' },       // B: Mega Drive B -> Keyboard X
+          1: { value: 'KeyS', value2: '' },       // Y: Mega Drive Y -> Keyboard S
+          2: { value: 'ShiftLeft', value2: '' },  // SELECT: Mode -> Keyboard Shift
+          3: { value: 'Enter', value2: '' },      // START: Start -> Keyboard Enter
+          4: { value: 'ArrowUp', value2: '' },    // UP: D-Pad Up -> Up Arrow
+          5: { value: 'ArrowDown', value2: '' },  // DOWN: D-Pad Down -> Down Arrow
+          6: { value: 'ArrowLeft', value2: '' },  // LEFT: D-Pad Left -> Left Arrow
+          7: { value: 'ArrowRight', value2: '' }, // RIGHT: D-Pad Right -> Right Arrow
+          8: { value: 'KeyZ', value2: '' },       // A: Mega Drive A -> Keyboard Z
+          9: { value: 'KeyA', value2: '' },       // X: Mega Drive X -> Keyboard A
+          10: { value: 'KeyC', value2: '' },      // L: Mega Drive C -> Keyboard C
+          11: { value: 'KeyD', value2: '' }       // R: Mega Drive Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
@@ -494,23 +494,6 @@
 
         window.EJS_onGameStart = () => {
           focusGameCanvas();
-
-          // Runtime sync into EJS_emulator keys array
-          if (window.EJS_emulator) {
-            const keysTarget = window.EJS_emulator.keys || window.EJS_emulator.controls;
-            if (keysTarget) {
-              const defaultMap = {
-                0: 'KeyX', 1: 'KeyS', 2: 'ShiftLeft', 3: 'Enter',
-                4: 'ArrowUp', 5: 'ArrowDown', 6: 'ArrowLeft', 7: 'ArrowRight',
-                8: 'KeyZ', 9: 'KeyA', 10: 'KeyC', 11: 'KeyD'
-              };
-              for (let k in defaultMap) {
-                if (keysTarget[k]) {
-                  keysTarget[k].value = defaultMap[k];
-                }
-              }
-            }
-          }
 
           let attempts = 0;
           const focusInterval = setInterval(() => {
