@@ -424,6 +424,80 @@
         window.EJS_gameID = gameTitle;
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
+        window.EJS_player = '#game';
+window.EJS_gameUrl = playableUrl;
+window.EJS_core = gameCore;
+window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
+window.EJS_gameid = gameTitle;
+window.EJS_gameID = gameTitle;
+window.EJS_startOnLoaded = true;
+window.EJS_hideMenubar = false;
+window.EJS_browserMode = "desktop";
+window.EJS_askBeforeExit = false;
+
+// ===== CONTROL SCHEMES =====
+const controlSchemes = {
+    nes: 'nes',
+    snes: 'snes',
+    gba: 'gba',
+    gb: 'gb',
+    gbc: 'gb',
+    n64: 'n64',
+    nds: 'nds',
+
+    segaMD: 'segaMD',
+    genesis: 'segaMD',
+    megadrive: 'segaMD',
+
+    segaCD: 'segaCD',
+    sega32x: 'sega32x',
+    segaMS: 'segaMS',
+    segaGG: 'segaGG',
+    segaSaturn: 'segaSaturn',
+
+    arcade: 'arcade',
+    fbneo: 'arcade',
+    mame: 'arcade',
+
+    psx: 'psx'
+};
+
+window.EJS_controlScheme =
+    controlSchemes[gameCore] || gameCore;
+
+
+// ===== KEYBOARD CONTROLS =====
+window.EJS_defaultControls = {
+    0: { // Player 1
+
+        // Main buttons
+        0: { value: "z", value2: "BUTTON_2" },
+        1: { value: "x", value2: "BUTTON_1" },
+        2: { value: "c", value2: "BUTTON_0" },
+
+        // Extra buttons
+        3: { value: "a", value2: "BUTTON_3" },
+        4: { value: "s", value2: "BUTTON_4" },
+        5: { value: "d", value2: "BUTTON_5" },
+
+        // Select / Start
+        6: { value: "shift", value2: "SELECT" },
+        7: { value: "enter", value2: "START" },
+
+        // D-Pad
+        8: { value: "up arrow", value2: "DPAD_UP" },
+        9: { value: "down arrow", value2: "DPAD_DOWN" },
+        10: { value: "left arrow", value2: "DPAD_LEFT" },
+        11: { value: "right arrow", value2: "DPAD_RIGHT" },
+
+        // Shoulder buttons
+        12: { value: "q", value2: "LEFT_TOP_SHOULDER" },
+        13: { value: "w", value2: "RIGHT_TOP_SHOULDER" },
+
+        // Extra
+        14: { value: "space", value2: "LEFT_BOTTOM_SHOULDER" }
+    }
+};
         // window.EJS_VirtualGamepadSettings = []; // Removed to keep normal keyboard and controller mappings
         if (gameCore === 'fbneo' || gameCore === 'fba') {
           const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
@@ -443,13 +517,21 @@
         };
 
         window.EJS_onGameStart = () => {
-          if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
-            window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
-            window.__pendingSavedStateBytes = null;
-            console.log('Applied saved game state to emulator');
-          }
 
-        };
+    if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
+        window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
+        window.__pendingSavedStateBytes = null;
+    }
+
+    // Focus emulator for keyboard input
+    setTimeout(() => {
+        const canvas = document.querySelector("canvas");
+        if (canvas) {
+            canvas.setAttribute("tabindex", "0");
+            canvas.focus();
+        }
+    }, 1000);
+};
 
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
@@ -598,7 +680,12 @@
       // Return immediately after the local save; the cloud request continues in the background.
       window.location.assign('dashboard.html');
     }
-
+    document.addEventListener('click', () => {
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+        canvas.focus();
+    }
+});
     window.closeGame = closeGame;
 
     // Boot emulator when page loads
