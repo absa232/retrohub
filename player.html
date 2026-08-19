@@ -493,11 +493,14 @@
             }
 
             if (savedState) {
-              if (saveData.stateFormat === 'chunked-text-v1') {
+              if (saveData.stateFormat === 'chunked-text-v1' || typeof savedState === 'string') {
                 window.__pendingSavedStateBytes = window.base64ToBytes(savedState);
+                console.log('Prepared Firestore save bytes for emulator');
               } else {
                 window.EJS_loadStateURL = savedState;
               }
+            } else {
+              console.log('Firestore document exists but contains no state data');
             }
           } catch (err) {
             console.warn('Save load failed:', err?.message || err);
