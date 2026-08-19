@@ -402,7 +402,6 @@
       const canvas = gameContainer.querySelector('canvas') || gameContainer.querySelector('iframe');
       if (canvas) {
         canvas.focus();
-        canvas.setAttribute('tabindex', '0');
       }
     }
 
@@ -440,22 +439,6 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // Correct object structure for EmulatorJS defaultControls
-        window.EJS_defaultControls = {
-          0: { value: 'arrowup', value2: '' },
-          1: { value: 'arrowdown', value2: '' },
-          2: { value: 'arrowleft', value2: '' },
-          3: { value: 'arrowright', value2: '' },
-          4: { value: 'z', value2: '' },      // MegaDrive A
-          5: { value: 'x', value2: '' },      // MegaDrive B
-          6: { value: 'c', value2: '' },      // MegaDrive C
-          7: { value: 'a', value2: '' },      // MegaDrive X
-          8: { value: 's', value2: '' },      // MegaDrive Y
-          9: { value: 'd', value2: '' },      // MegaDrive Z
-          10: { value: 'enter', value2: '' }, // Start
-          11: { value: 'shift', value2: '' }  // Mode / Select
-        };
-
         if (gameCore === 'fbneo' || gameCore === 'fba') {
           const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
           const biosUrl = 'https://archive.org/download/neo-geo-bios/neogeo.zip';
@@ -475,13 +458,6 @@
 
         window.EJS_onGameStart = () => {
           focusGameCanvas();
-          let attempts = 0;
-          const focusInterval = setInterval(() => {
-            focusGameCanvas();
-            attempts++;
-            if (attempts > 10) clearInterval(focusInterval);
-          }, 300);
-
           if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
             window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
             window.__pendingSavedStateBytes = null;
@@ -632,14 +608,8 @@
 
     window.closeGame = closeGame;
 
-    // Canvas focus management
+    // Focus emulator canvas on click
     document.getElementById('game').addEventListener('click', focusGameCanvas);
-    document.addEventListener('keydown', (e) => {
-      const canvas = document.querySelector('#game canvas');
-      if (canvas && document.activeElement !== canvas) {
-        canvas.focus();
-      }
-    });
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', bootEmulator);
