@@ -131,7 +131,7 @@
   <div id="game-container">
     <div class="top-bar">
       <div class="game-title" id="game-title">Loading...</div>
-      <button class="close-btn" onclick="closeGame()">Save & Exit Game</button>
+      <button class="close-btn" onclick="closeGame()">Save & Close</button>
     </div>
     <div id="game"></div>
     <div class="loading" id="loading-indicator">
@@ -426,6 +426,11 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
         window.EJS_VirtualGamepadSettings = [];
+        if (gameCore === 'fbneo' || gameCore === 'fba') {
+          const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
+          const biosUrl = 'https://archive.org/download/neo-geo-bios/neogeo.zip';
+          window.EJS_biosUrl = `${proxyBaseUrl}/?url=${encodeURIComponent(biosUrl)}`;
+        }
 
         // Save handler
         window.EJS_onSaveState = (data) => {
