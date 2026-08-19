@@ -425,8 +425,8 @@
         const isSegaCore = ['segaMD', 'segaCD', 'sega32x', 'picodrive', 'genesis_plus_gx'].includes(gameCore);
         const defaultControls = {
           0: {
-            0: { value: 'x', value2: 'BUTTON_2' },
-            1: { value: isSegaCore ? 'z' : 's', value2: isSegaCore ? 'BUTTON_1' : 'BUTTON_4' },
+            0: { value: isSegaCore ? 'z' : 'x', value2: isSegaCore ? 'BUTTON_1' : 'BUTTON_2' },
+            1: { value: isSegaCore ? 'x' : 's', value2: isSegaCore ? 'BUTTON_2' : 'BUTTON_4' },
             2: { value: 'v', value2: isSegaCore ? 'MODE' : 'SELECT' },
             3: { value: 'enter', value2: 'START' },
             4: { value: 'up arrow', value2: 'DPAD_UP' },
@@ -479,7 +479,7 @@
           }
 
           const segaKeys = {
-            KeyX: 0, KeyZ: 1, KeyC: 8, KeyA: 10, KeyS: 9, KeyD: 11,
+            KeyZ: 0, KeyX: 1, KeyC: 8, KeyA: 10, KeyS: 9, KeyD: 11,
             KeyV: 2, Enter: 3, ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7
           };
           const standardKeys = {
