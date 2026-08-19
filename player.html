@@ -449,12 +449,18 @@
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
           try {
-            let savedState = await window.loadStateLocally(window.currentGameTitle);
+            let savedState = null;
+            try {
+              savedState = await window.loadStateLocally(window.currentGameTitle);
+            } catch (localError) {
+              console.warn('Local save lookup failed; checking Firestore:', localError?.message || localError);
+            }
             let saveData = { stateFormat: 'chunked-text-v1' };
 
             if (savedState) {
               console.log('Loaded saved game state from local storage');
             } else {
+              console.log('No local save found; checking Firestore');
               let saveRef = window.firestoreDoc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
               let saveSnap = await window.firestoreGetDoc(saveRef);
 
@@ -480,6 +486,8 @@
                 if (savedState) {
                   await window.saveStateLocally(window.currentGameTitle, savedState);
                   console.log('Loaded saved game state from Firestore and cached locally');
+                } else {
+                  console.log('No saved game state found in Firestore');
                 }
               }
             }
