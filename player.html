@@ -421,7 +421,7 @@
       return 'segaMD';
     }
 
-    // Clears any stale/empty control entries from localStorage that block defaultControls
+    // Clears any stale/empty control entries from localStorage
     function sanitizeControlCache() {
       try {
         const keysToRemove = [];
@@ -454,7 +454,7 @@
       try {
         await window.authStateReady;
 
-        // Clear stale local control cache so custom defaultControls applies
+        // Clear stale local control cache
         sanitizeControlCache();
 
         // Prepare game container
@@ -477,35 +477,25 @@
         // Specify system control scheme (e.g. segaMD, snes, nes, gba, etc.)
         window.EJS_controlScheme = getControlScheme(gameCore);
 
-        // Pre-map keys using standard KeyboardEvent.code string values
-        window.EJS_defaultControls = {
-          0: { value: 'ArrowUp', value2: '' },
-          1: { value: 'ArrowDown', value2: '' },
-          2: { value: 'ArrowLeft', value2: '' },
-          3: { value: 'ArrowRight', value2: '' },
-          4: { value: 'KeyZ', value2: '' },       // A -> Z
-          5: { value: 'KeyX', value2: '' },       // B -> X
-          6: { value: 'KeyC', value2: '' },       // C -> C
-          7: { value: 'KeyA', value2: '' },       // X -> A
-          8: { value: 'KeyS', value2: '' },       // Y -> S
-          9: { value: 'KeyD', value2: '' },       // Z -> D
-          10: { value: 'Enter', value2: '' },     // Start -> Enter
-          11: { value: 'ShiftLeft', value2: '' }, // Mode / Select -> Shift
+        // Define default controls as an ARRAY
+        const mappedControls = [
+          { value: 'ArrowUp', value2: '' },      // 0: Up
+          { value: 'ArrowDown', value2: '' },    // 1: Down
+          { value: 'ArrowLeft', value2: '' },    // 2: Left
+          { value: 'ArrowRight', value2: '' },   // 3: Right
+          { value: 'KeyZ', value2: '' },         // 4: A -> Z
+          { value: 'KeyX', value2: '' },         // 5: B -> X
+          { value: 'KeyC', value2: '' },         // 6: C -> C
+          { value: 'KeyA', value2: '' },         // 7: X -> A
+          { value: 'KeyS', value2: '' },         // 8: Y -> S
+          { value: 'KeyD', value2: '' },         // 9: Z -> D
+          { value: 'Enter', value2: '' },        // 10: Start -> Enter
+          { value: 'ShiftLeft', value2: '' }     // 11: Mode / Select -> Shift
+        ];
 
-          // String fallback keys
-          'up': { value: 'ArrowUp', value2: '' },
-          'down': { value: 'ArrowDown', value2: '' },
-          'left': { value: 'ArrowLeft', value2: '' },
-          'right': { value: 'ArrowRight', value2: '' },
-          'a': { value: 'KeyZ', value2: '' },
-          'b': { value: 'KeyX', value2: '' },
-          'c': { value: 'KeyC', value2: '' },
-          'x': { value: 'KeyA', value2: '' },
-          'y': { value: 'KeyS', value2: '' },
-          'z': { value: 'KeyD', value2: '' },
-          'start': { value: 'Enter', value2: '' },
-          'mode': { value: 'ShiftLeft', value2: '' },
-          'select': { value: 'ShiftLeft', value2: '' }
+        window.EJS_defaultControls = mappedControls;
+        window.EJS_settings = {
+          controls: mappedControls
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
@@ -527,6 +517,20 @@
 
         window.EJS_onGameStart = () => {
           focusGameCanvas();
+
+          // Sync runtime control bindings directly into EmulatorJS
+          if (window.EJS_emulator) {
+            if (!window.EJS_emulator.controls) {
+              window.EJS_emulator.controls = mappedControls;
+            } else if (Array.isArray(window.EJS_emulator.controls)) {
+              mappedControls.forEach((ctl, idx) => {
+                if (window.EJS_emulator.controls[idx]) {
+                  window.EJS_emulator.controls[idx].value = ctl.value;
+                }
+              });
+            }
+          }
+
           let attempts = 0;
           const focusInterval = setInterval(() => {
             focusGameCanvas();
