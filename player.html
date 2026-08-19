@@ -405,22 +405,6 @@
       }
     }
 
-    function getControlScheme(core) {
-      if (!core) return 'segaMD';
-      const c = core.toLowerCase();
-      if (c.includes('pico') || c.includes('genesis') || c.includes('megadrive') || c.includes('md') || c.includes('sega')) return 'segaMD';
-      if (c.includes('snes') || c.includes('sfc')) return 'snes';
-      if (c.includes('nes') || c.includes('fceumm') || c.includes('nestopia')) return 'nes';
-      if (c.includes('gba') || c.includes('mgba')) return 'gba';
-      if (c.includes('gb')) return 'gb';
-      if (c.includes('n64') || c.includes('mupen')) return 'n64';
-      if (c.includes('fbneo') || c.includes('fba') || c.includes('mame') || c.includes('arcade')) return 'arcade';
-      if (c.includes('psx') || c.includes('pcsx')) return 'psx';
-      if (c.includes('gg') || c.includes('gear')) return 'segaGG';
-      if (c.includes('sms') || c.includes('master')) return 'segaMS';
-      return 'segaMD';
-    }
-
     // Clears any stale/empty control entries from localStorage
     function sanitizeControlCache() {
       try {
@@ -474,28 +458,21 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // Specify system control scheme (e.g. segaMD, snes, nes, gba, etc.)
-        window.EJS_controlScheme = getControlScheme(gameCore);
-
-        // Define default controls as an ARRAY
-        const mappedControls = [
-          { value: 'ArrowUp', value2: '' },      // 0: Up
-          { value: 'ArrowDown', value2: '' },    // 1: Down
-          { value: 'ArrowLeft', value2: '' },    // 2: Left
-          { value: 'ArrowRight', value2: '' },   // 3: Right
-          { value: 'KeyZ', value2: '' },         // 4: A -> Z
-          { value: 'KeyX', value2: '' },         // 5: B -> X
-          { value: 'KeyC', value2: '' },         // 6: C -> C
-          { value: 'KeyA', value2: '' },         // 7: X -> A
-          { value: 'KeyS', value2: '' },         // 8: Y -> S
-          { value: 'KeyD', value2: '' },         // 9: Z -> D
-          { value: 'Enter', value2: '' },        // 10: Start -> Enter
-          { value: 'ShiftLeft', value2: '' }     // 11: Mode / Select -> Shift
-        ];
-
-        window.EJS_defaultControls = mappedControls;
-        window.EJS_settings = {
-          controls: mappedControls
+        // RetroArch Index Mapping matching the UI rows directly:
+        // 0: B, 1: Y, 2: SELECT, 3: START, 4: UP, 5: DOWN, 6: LEFT, 7: RIGHT, 8: A, 9: X, 10: L, 11: R
+        window.EJS_defaultControls = {
+          0: 'KeyX',        // B: Mega Drive B -> Keyboard X
+          1: 'KeyS',        // Y: Mega Drive Y -> Keyboard S
+          2: 'ShiftLeft',   // SELECT: Mode -> Keyboard Shift
+          3: 'Enter',       // START: Start -> Keyboard Enter
+          4: 'ArrowUp',     // UP: D-Pad Up -> Up Arrow
+          5: 'ArrowDown',   // DOWN: D-Pad Down -> Down Arrow
+          6: 'ArrowLeft',   // LEFT: D-Pad Left -> Left Arrow
+          7: 'ArrowRight',  // RIGHT: D-Pad Right -> Right Arrow
+          8: 'KeyZ',        // A: Mega Drive A -> Keyboard Z
+          9: 'KeyA',        // X: Mega Drive X -> Keyboard A
+          10: 'KeyC',       // L: Mega Drive C -> Keyboard C
+          11: 'KeyD'        // R: Mega Drive Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
@@ -518,16 +495,20 @@
         window.EJS_onGameStart = () => {
           focusGameCanvas();
 
-          // Sync runtime control bindings directly into EmulatorJS
+          // Runtime sync into EJS_emulator keys array
           if (window.EJS_emulator) {
-            if (!window.EJS_emulator.controls) {
-              window.EJS_emulator.controls = mappedControls;
-            } else if (Array.isArray(window.EJS_emulator.controls)) {
-              mappedControls.forEach((ctl, idx) => {
-                if (window.EJS_emulator.controls[idx]) {
-                  window.EJS_emulator.controls[idx].value = ctl.value;
+            const keysTarget = window.EJS_emulator.keys || window.EJS_emulator.controls;
+            if (keysTarget) {
+              const defaultMap = {
+                0: 'KeyX', 1: 'KeyS', 2: 'ShiftLeft', 3: 'Enter',
+                4: 'ArrowUp', 5: 'ArrowDown', 6: 'ArrowLeft', 7: 'ArrowRight',
+                8: 'KeyZ', 9: 'KeyA', 10: 'KeyC', 11: 'KeyD'
+              };
+              for (let k in defaultMap) {
+                if (keysTarget[k]) {
+                  keysTarget[k].value = defaultMap[k];
                 }
-              });
+              }
             }
           }
 
