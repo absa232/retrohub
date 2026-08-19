@@ -405,6 +405,22 @@
       }
     }
 
+    function getControlScheme(core) {
+      if (!core) return 'segaMD';
+      const c = core.toLowerCase();
+      if (c.includes('pico') || c.includes('genesis') || c.includes('megadrive') || c.includes('md') || c.includes('sega')) return 'segaMD';
+      if (c.includes('snes') || c.includes('sfc')) return 'snes';
+      if (c.includes('nes') || c.includes('fceumm') || c.includes('nestopia')) return 'nes';
+      if (c.includes('gba') || c.includes('mgba')) return 'gba';
+      if (c.includes('gb')) return 'gb';
+      if (c.includes('n64') || c.includes('mupen')) return 'n64';
+      if (c.includes('fbneo') || c.includes('fba') || c.includes('mame') || c.includes('arcade')) return 'arcade';
+      if (c.includes('psx') || c.includes('pcsx')) return 'psx';
+      if (c.includes('gg') || c.includes('gear')) return 'segaGG';
+      if (c.includes('sms') || c.includes('master')) return 'segaMS';
+      return 'segaMD';
+    }
+
     async function resolvePlayableRomUrl(romPath) {
       if (romPath && romPath.startsWith('https://archive.org')) {
         const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
@@ -439,6 +455,25 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
+        // Specify system control scheme (e.g. segaMD, snes, nes, gba, etc.)
+        window.EJS_controlScheme = getControlScheme(gameCore);
+
+        // Define exact 6-button controls for Mega Drive & default systems
+        window.EJS_defaultControls = {
+          0: { value: 'arrowup', value2: '' },
+          1: { value: 'arrowdown', value2: '' },
+          2: { value: 'arrowleft', value2: '' },
+          3: { value: 'arrowright', value2: '' },
+          4: { value: 'z', value2: '' },      // A
+          5: { value: 'x', value2: '' },      // B
+          6: { value: 'c', value2: '' },      // C
+          7: { value: 'a', value2: '' },      // X
+          8: { value: 's', value2: '' },      // Y
+          9: { value: 'd', value2: '' },      // Z
+          10: { value: 'enter', value2: '' }, // Start
+          11: { value: 'shift', value2: '' }  // Mode / Select
+        };
+
         if (gameCore === 'fbneo' || gameCore === 'fba') {
           const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
           const biosUrl = 'https://archive.org/download/neo-geo-bios/neogeo.zip';
@@ -458,6 +493,13 @@
 
         window.EJS_onGameStart = () => {
           focusGameCanvas();
+          let attempts = 0;
+          const focusInterval = setInterval(() => {
+            focusGameCanvas();
+            attempts++;
+            if (attempts > 10) clearInterval(focusInterval);
+          }, 300);
+
           if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
             window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
             window.__pendingSavedStateBytes = null;
