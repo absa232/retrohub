@@ -33,6 +33,11 @@
       flex: 1;
       background: #000;
       position: relative;
+      outline: none;
+    }
+
+    #game canvas {
+      outline: none;
     }
     
     .top-bar {
@@ -133,7 +138,7 @@
       <div class="game-title" id="game-title">Loading...</div>
       <button class="close-btn" onclick="closeGame()">Save & Exit Game</button>
     </div>
-    <div id="game"></div>
+    <div id="game" tabindex="0"></div>
     <div class="loading" id="loading-indicator">
       <div class="loading-spinner"></div>
       <div>Loading game...</div>
@@ -302,7 +307,6 @@
           serializedState = JSON.stringify(serializedState);
         }
 
-        // The local copy is written first so closing or reopening is fast and resilient.
         await saveStateLocally(window.currentGameTitle, serializedState);
 
         const saveRef = doc(db, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
@@ -391,6 +395,16 @@
     // Update title
     document.getElementById('game-title').textContent = gameTitle || 'Game';
 
+    function focusGameCanvas() {
+      const gameContainer = document.getElementById('game');
+      if (!gameContainer) return;
+      gameContainer.focus();
+      const canvas = gameContainer.querySelector('canvas');
+      if (canvas) {
+        canvas.focus();
+      }
+    }
+
     async function resolvePlayableRomUrl(romPath) {
       if (romPath && romPath.startsWith('https://archive.org')) {
         const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
@@ -424,81 +438,23 @@
         window.EJS_gameID = gameTitle;
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
-        window.EJS_player = '#game';
-window.EJS_gameUrl = playableUrl;
-window.EJS_core = gameCore;
-window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
-window.EJS_gameid = gameTitle;
-window.EJS_gameID = gameTitle;
-window.EJS_startOnLoaded = true;
-window.EJS_hideMenubar = false;
-window.EJS_browserMode = "desktop";
-window.EJS_askBeforeExit = false;
 
-// ===== CONTROL SCHEMES =====
-const controlSchemes = {
-    nes: 'nes',
-    snes: 'snes',
-    gba: 'gba',
-    gb: 'gb',
-    gbc: 'gb',
-    n64: 'n64',
-    nds: 'nds',
+        // Configure default keyboard control mappings for systems including Mega Drive / Genesis
+        window.EJS_defaultControls = {
+          0: 'ArrowUp',     // D-Pad Up
+          1: 'ArrowDown',   // D-Pad Down
+          2: 'ArrowLeft',   // D-Pad Left
+          3: 'ArrowRight',  // D-Pad Right
+          4: 'KeyZ',        // Button A (Mega Drive A / SNES B)
+          5: 'KeyX',        // Button B (Mega Drive B / SNES A)
+          6: 'KeyC',        // Button C (Mega Drive C / SNES Y)
+          7: 'KeyA',        // Button X (Mega Drive X / SNES X)
+          8: 'KeyS',        // Button Y (Mega Drive Y / SNES L)
+          9: 'KeyD',        // Button Z (Mega Drive Z / SNES R)
+          10: 'Enter',      // Start
+          11: 'ShiftLeft'   // Select / Mode
+        };
 
-    segaMD: 'segaMD',
-    genesis: 'segaMD',
-    megadrive: 'segaMD',
-
-    segaCD: 'segaCD',
-    sega32x: 'sega32x',
-    segaMS: 'segaMS',
-    segaGG: 'segaGG',
-    segaSaturn: 'segaSaturn',
-
-    arcade: 'arcade',
-    fbneo: 'arcade',
-    mame: 'arcade',
-
-    psx: 'psx'
-};
-
-window.EJS_controlScheme =
-    controlSchemes[gameCore] || gameCore;
-
-
-// ===== KEYBOARD CONTROLS =====
-window.EJS_defaultControls = {
-    0: { // Player 1
-
-        // Main buttons
-        0: { value: "z", value2: "BUTTON_2" },
-        1: { value: "x", value2: "BUTTON_1" },
-        2: { value: "c", value2: "BUTTON_0" },
-
-        // Extra buttons
-        3: { value: "a", value2: "BUTTON_3" },
-        4: { value: "s", value2: "BUTTON_4" },
-        5: { value: "d", value2: "BUTTON_5" },
-
-        // Select / Start
-        6: { value: "shift", value2: "SELECT" },
-        7: { value: "enter", value2: "START" },
-
-        // D-Pad
-        8: { value: "up arrow", value2: "DPAD_UP" },
-        9: { value: "down arrow", value2: "DPAD_DOWN" },
-        10: { value: "left arrow", value2: "DPAD_LEFT" },
-        11: { value: "right arrow", value2: "DPAD_RIGHT" },
-
-        // Shoulder buttons
-        12: { value: "q", value2: "LEFT_TOP_SHOULDER" },
-        13: { value: "w", value2: "RIGHT_TOP_SHOULDER" },
-
-        // Extra
-        14: { value: "space", value2: "LEFT_BOTTOM_SHOULDER" }
-    }
-};
-        // window.EJS_VirtualGamepadSettings = []; // Removed to keep normal keyboard and controller mappings
         if (gameCore === 'fbneo' || gameCore === 'fba') {
           const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
           const biosUrl = 'https://archive.org/download/neo-geo-bios/neogeo.zip';
@@ -517,21 +473,13 @@ window.EJS_defaultControls = {
         };
 
         window.EJS_onGameStart = () => {
-
-    if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
-        window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
-        window.__pendingSavedStateBytes = null;
-    }
-
-    // Focus emulator for keyboard input
-    setTimeout(() => {
-        const canvas = document.querySelector("canvas");
-        if (canvas) {
-            canvas.setAttribute("tabindex", "0");
-            canvas.focus();
-        }
-    }, 1000);
-};
+          focusGameCanvas();
+          if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
+            window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
+            window.__pendingSavedStateBytes = null;
+            console.log('Applied saved game state to emulator');
+          }
+        };
 
         // Load saved game state if it exists
         if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
@@ -551,9 +499,8 @@ window.EJS_defaultControls = {
               let saveRef = window.firestoreDoc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
               let saveSnap = await window.firestoreGetDoc(saveRef);
 
-              // Read saves created before the chunked save path was introduced.
               if (!saveSnap.exists()) {
-                saveRef = window.firestoreDoc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle);
+                saveRef = window.firestoreDoc(window.firebaseDoc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle));
                 saveSnap = await window.firestoreGetDoc(saveRef);
               }
 
@@ -601,13 +548,12 @@ window.EJS_defaultControls = {
         
         script.onload = () => {
           console.log('EmulatorJS loader loaded');
-          // Hide loading indicator after a short delay to let emulator initialize
           setTimeout(() => {
             const loading = document.getElementById('loading-indicator');
             if (loading) loading.style.display = 'none';
+            focusGameCanvas();
           }, 2000);
 
-          // Set up autosave
           setupAutosave();
           suppressKnownEjsWarnings();
         };
@@ -624,7 +570,6 @@ window.EJS_defaultControls = {
     }
 
     function setupAutosave() {
-      // Autosave every 2 minutes
       if (window.currentAutoSaveInterval) clearInterval(window.currentAutoSaveInterval);
       
       window.currentAutoSaveInterval = setInterval(async () => {
@@ -657,18 +602,15 @@ window.EJS_defaultControls = {
         closeButton.textContent = 'Saving...';
       }
 
-      // Clear autosave interval
       if (window.currentAutoSaveInterval) {
         clearInterval(window.currentAutoSaveInterval);
       }
 
       const state = await window.saveCurrentGameStateLocally();
       if (state != null && window.currentUser) {
-        // Start cloud sync after the local save; local data is already safe before closing.
         pendingSavePromise = window.syncSaveToCloud(state);
       }
 
-      // Destroy emulator if it exists
       if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
         try {
           window.EJS_emulator.destroy();
@@ -677,18 +619,19 @@ window.EJS_defaultControls = {
         }
       }
 
-      // Return immediately after the local save; the cloud request continues in the background.
       window.location.assign('dashboard.html');
     }
-    document.addEventListener('click', () => {
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-        canvas.focus();
-    }
-});
+
     window.closeGame = closeGame;
 
-    // Boot emulator when page loads
+    // Direct user click/focus back to game canvas
+    document.getElementById('game').addEventListener('click', focusGameCanvas);
+    document.addEventListener('keydown', () => {
+      if (document.activeElement !== document.querySelector('#game canvas')) {
+        focusGameCanvas();
+      }
+    });
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', bootEmulator);
     } else {
