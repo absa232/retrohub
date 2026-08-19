@@ -399,9 +399,10 @@
       const gameContainer = document.getElementById('game');
       if (!gameContainer) return;
       gameContainer.focus();
-      const canvas = gameContainer.querySelector('canvas');
+      const canvas = gameContainer.querySelector('canvas') || gameContainer.querySelector('iframe');
       if (canvas) {
         canvas.focus();
+        canvas.setAttribute('tabindex', '0');
       }
     }
 
@@ -439,20 +440,20 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // Configure default keyboard control mappings for systems including Mega Drive / Genesis
+        // Correct object structure for EmulatorJS defaultControls
         window.EJS_defaultControls = {
-          0: 'ArrowUp',     // D-Pad Up
-          1: 'ArrowDown',   // D-Pad Down
-          2: 'ArrowLeft',   // D-Pad Left
-          3: 'ArrowRight',  // D-Pad Right
-          4: 'KeyZ',        // Button A (Mega Drive A / SNES B)
-          5: 'KeyX',        // Button B (Mega Drive B / SNES A)
-          6: 'KeyC',        // Button C (Mega Drive C / SNES Y)
-          7: 'KeyA',        // Button X (Mega Drive X / SNES X)
-          8: 'KeyS',        // Button Y (Mega Drive Y / SNES L)
-          9: 'KeyD',        // Button Z (Mega Drive Z / SNES R)
-          10: 'Enter',      // Start
-          11: 'ShiftLeft'   // Select / Mode
+          0: { value: 'arrowup', value2: '' },
+          1: { value: 'arrowdown', value2: '' },
+          2: { value: 'arrowleft', value2: '' },
+          3: { value: 'arrowright', value2: '' },
+          4: { value: 'z', value2: '' },      // MegaDrive A
+          5: { value: 'x', value2: '' },      // MegaDrive B
+          6: { value: 'c', value2: '' },      // MegaDrive C
+          7: { value: 'a', value2: '' },      // MegaDrive X
+          8: { value: 's', value2: '' },      // MegaDrive Y
+          9: { value: 'd', value2: '' },      // MegaDrive Z
+          10: { value: 'enter', value2: '' }, // Start
+          11: { value: 'shift', value2: '' }  // Mode / Select
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
@@ -474,6 +475,13 @@
 
         window.EJS_onGameStart = () => {
           focusGameCanvas();
+          let attempts = 0;
+          const focusInterval = setInterval(() => {
+            focusGameCanvas();
+            attempts++;
+            if (attempts > 10) clearInterval(focusInterval);
+          }, 300);
+
           if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
             window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
             window.__pendingSavedStateBytes = null;
@@ -624,11 +632,12 @@
 
     window.closeGame = closeGame;
 
-    // Direct user click/focus back to game canvas
+    // Canvas focus management
     document.getElementById('game').addEventListener('click', focusGameCanvas);
-    document.addEventListener('keydown', () => {
-      if (document.activeElement !== document.querySelector('#game canvas')) {
-        focusGameCanvas();
+    document.addEventListener('keydown', (e) => {
+      const canvas = document.querySelector('#game canvas');
+      if (canvas && document.activeElement !== canvas) {
+        canvas.focus();
       }
     });
 
