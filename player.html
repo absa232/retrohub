@@ -472,6 +472,30 @@
             window.__pendingSavedStateBytes = null;
             console.log('Applied saved game state to emulator');
           }
+
+          if (window.__retrohubKeyboardHandler) {
+            window.removeEventListener('keydown', window.__retrohubKeyboardHandler);
+            window.removeEventListener('keyup', window.__retrohubKeyboardHandler);
+          }
+
+          const segaKeys = {
+            KeyX: 0, KeyZ: 1, KeyC: 8, KeyA: 10, KeyS: 9, KeyD: 11,
+            KeyV: 2, Enter: 3, ArrowUp: 4, ArrowDown: 5, ArrowLeft: 6, ArrowRight: 7
+          };
+          const standardKeys = {
+            KeyX: 0, KeyS: 1, KeyV: 2, Enter: 3, ArrowUp: 4, ArrowDown: 5,
+            ArrowLeft: 6, ArrowRight: 7, KeyZ: 8, KeyA: 9, KeyQ: 10, KeyE: 11
+          };
+          const keyboardMap = isSegaCore ? segaKeys : standardKeys;
+          window.__retrohubKeyboardHandler = (event) => {
+            const button = keyboardMap[event.code];
+            const emulator = window.EJS_emulator;
+            if (button === undefined || !emulator?.started || !emulator.gameManager) return;
+            event.preventDefault();
+            emulator.gameManager.simulateInput(0, button, event.type === 'keydown' ? 1 : 0);
+          };
+          window.addEventListener('keydown', window.__retrohubKeyboardHandler);
+          window.addEventListener('keyup', window.__retrohubKeyboardHandler);
         };
 
         // Load saved game state if it exists
