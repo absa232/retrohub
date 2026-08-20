@@ -405,22 +405,6 @@
       }
     }
 
-    // Clears any stale control entries from localStorage
-    function sanitizeControlCache() {
-      try {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.includes('EJS') || key.includes('controls') || key.includes('settings'))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
-      } catch (e) {
-        console.warn('Control cache reset warning:', e);
-      }
-    }
-
     async function resolvePlayableRomUrl(romPath) {
       if (romPath && romPath.startsWith('https://archive.org')) {
         const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
@@ -437,9 +421,6 @@
 
       try {
         await window.authStateReady;
-
-        // Clear stale local control cache
-        sanitizeControlCache();
 
         // Prepare game container
         const gameDiv = document.getElementById('game');
@@ -458,28 +439,20 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // Enable 6-button controller pad in core options for Sega Mega Drive / Genesis
-        if (gameCore.includes('pico') || gameCore.includes('genesis') || gameCore.includes('megadrive') || gameCore.includes('sega')) {
-          window.EJS_coreOptions = {
-            'picodrive_input1': '6 button pad',
-            'genesis_plus_gx_input1': '6 button pad'
-          };
-        }
-
-        // Global default controls mapping using numeric JavaScript keyCodes
+        // Default keyboard control mapping
         window.EJS_defaultControls = {
-          0: { value: 88, value2: '' }, // Button B -> Key X (keyCode 88)
-          1: { value: 83, value2: '' }, // Button Y -> Key S (keyCode 83)
-          2: { value: 16, value2: '' }, // Select / Mode -> Shift (keyCode 16)
-          3: { value: 13, value2: '' }, // Start -> Enter (keyCode 13)
-          4: { value: 38, value2: '' }, // Up -> Up Arrow (keyCode 38)
-          5: { value: 40, value2: '' }, // Down -> Down Arrow (keyCode 40)
-          6: { value: 37, value2: '' }, // Left -> Left Arrow (keyCode 37)
-          7: { value: 39, value2: '' }, // Right -> Right Arrow (keyCode 39)
-          8: { value: 90, value2: '' }, // Button A -> Key Z (keyCode 90)
-          9: { value: 65, value2: '' }, // Button X -> Key A (keyCode 65)
-          10: { value: 67, value2: '' },// Button L / C -> Key C (keyCode 67)
-          11: { value: 68, value2: '' } // Button R / Z -> Key D (keyCode 68)
+          0: 'x',         // Button B -> Keyboard X
+          1: 's',         // Button Y -> Keyboard S
+          2: 'shift',     // Select -> Keyboard Shift
+          3: 'enter',     // Start -> Keyboard Enter
+          4: 'arrowup',   // Up -> Up Arrow
+          5: 'arrowdown', // Down -> Down Arrow
+          6: 'arrowleft', // Left -> Left Arrow
+          7: 'arrowright',// Right -> Right Arrow
+          8: 'z',         // Button A -> Keyboard Z
+          9: 'a',         // Button X -> Keyboard A
+          10: 'c',        // Button L / C -> Keyboard C
+          11: 'd'         // Button R / Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
