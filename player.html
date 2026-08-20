@@ -458,21 +458,21 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // RetroArch Index Mapping with object value structures:
+        // Exact lowercase key strings expected by EmulatorJS getKeyName():
         // 0: B, 1: Y, 2: SELECT, 3: START, 4: UP, 5: DOWN, 6: LEFT, 7: RIGHT, 8: A, 9: X, 10: L, 11: R
         window.EJS_defaultControls = {
-          0: { value: 'KeyX', value2: '' },       // B: Mega Drive B -> Keyboard X
-          1: { value: 'KeyS', value2: '' },       // Y: Mega Drive Y -> Keyboard S
-          2: { value: 'ShiftLeft', value2: '' },  // SELECT: Mode -> Keyboard Shift
-          3: { value: 'Enter', value2: '' },      // START: Start -> Keyboard Enter
-          4: { value: 'ArrowUp', value2: '' },    // UP: D-Pad Up -> Up Arrow
-          5: { value: 'ArrowDown', value2: '' },  // DOWN: D-Pad Down -> Down Arrow
-          6: { value: 'ArrowLeft', value2: '' },  // LEFT: D-Pad Left -> Left Arrow
-          7: { value: 'ArrowRight', value2: '' }, // RIGHT: D-Pad Right -> Right Arrow
-          8: { value: 'KeyZ', value2: '' },       // A: Mega Drive A -> Keyboard Z
-          9: { value: 'KeyA', value2: '' },       // X: Mega Drive X -> Keyboard A
-          10: { value: 'KeyC', value2: '' },      // L: Mega Drive C -> Keyboard C
-          11: { value: 'KeyD', value2: '' }       // R: Mega Drive Z -> Keyboard D
+          0: 'x',         // B: Mega Drive B -> Keyboard X
+          1: 's',         // Y: Mega Drive Y -> Keyboard S
+          2: 'shift',     // SELECT: Mode -> Keyboard Shift
+          3: 'enter',     // START: Start -> Keyboard Enter
+          4: 'arrowup',   // UP: D-Pad Up -> Up Arrow
+          5: 'arrowdown', // DOWN: D-Pad Down -> Down Arrow
+          6: 'arrowleft', // LEFT: D-Pad Left -> Left Arrow
+          7: 'arrowright',// RIGHT: D-Pad Right -> Right Arrow
+          8: 'z',         // A: Mega Drive A -> Keyboard Z
+          9: 'a',         // X: Mega Drive X -> Keyboard A
+          10: 'c',        // L: Mega Drive C -> Keyboard C
+          11: 'd'         // R: Mega Drive Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
