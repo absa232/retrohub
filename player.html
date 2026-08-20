@@ -1,9 +1,11 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Playing Game</title>
+
   <style>
     :root {
       --bg-color: #0f0e17;
@@ -14,21 +16,31 @@
       --panel: rgba(31, 30, 46, 0.92);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #2a0845 0%, #0f0e17 55%, #1f1e2e 100%);
+      background: linear-gradient(
+        135deg,
+        #2a0845 0%,
+        #0f0e17 55%,
+        #1f1e2e 100%
+      );
       color: var(--text);
       overflow: hidden;
     }
-    
+
     #game-container {
       width: 100vw;
       height: 100vh;
       display: flex;
       flex-direction: column;
     }
-    
+
     #game {
       flex: 1;
       background: #000;
@@ -39,7 +51,7 @@
     #game canvas {
       outline: none;
     }
-    
+
     .top-bar {
       background: rgba(15, 14, 23, 0.96);
       color: var(--text);
@@ -51,14 +63,14 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     }
-    
+
     .game-title {
       flex: 1;
       font-weight: 700;
       letter-spacing: 0.02em;
       color: var(--accent);
     }
-    
+
     .close-btn {
       background: var(--accent);
       color: #111;
@@ -70,7 +82,7 @@
       font-weight: 700;
       box-shadow: 0 6px 18px rgba(255, 139, 167, 0.3);
     }
-    
+
     .close-btn:hover {
       filter: brightness(1.06);
     }
@@ -91,7 +103,7 @@
       visibility: hidden !important;
       pointer-events: none !important;
     }
-    
+
     .loading {
       position: absolute;
       top: 50%;
@@ -101,7 +113,7 @@
       text-align: center;
       z-index: 10;
     }
-    
+
     .loading-spinner {
       width: 40px;
       height: 40px;
@@ -111,12 +123,17 @@
       animation: spin 1s linear infinite;
       margin: 0 auto 16px;
     }
-    
+
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
-    
+
     .error-msg {
       position: absolute;
       top: 50%;
@@ -132,25 +149,51 @@
     }
   </style>
 </head>
+
 <body>
+
   <div id="game-container">
+
     <div class="top-bar">
       <div class="game-title" id="game-title">Loading...</div>
-      <button class="close-btn" onclick="closeGame()">Save & Exit Game</button>
+
+      <button class="close-btn" onclick="closeGame()">
+        Save & Exit Game
+      </button>
     </div>
+
     <div id="game" tabindex="0"></div>
+
     <div class="loading" id="loading-indicator">
       <div class="loading-spinner"></div>
       <div>Loading game...</div>
     </div>
+
     <div class="error-msg" id="error-msg" style="display: none;"></div>
+
   </div>
+
 
   <!-- Firebase -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
-    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-app.js";
+
+    import {
+      getAuth,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-auth.js";
+
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      updateDoc
+    } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyAeS_FJxXZbbakYuOMhF1MI_1P1Ht8EUwA",
@@ -161,9 +204,12 @@
       appId: "1:48063295144:web:1bdcb75b600222d8ee5c9d"
     };
 
+
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+
+
     window.firestoreDoc = doc;
     window.firestoreGetDoc = getDoc;
 
@@ -172,509 +218,1730 @@
     window.firebaseDb = db;
     window.currentUser = null;
 
+
     let playerAuthRedirectTimer = null;
     let authStateResolved = false;
+
     let resolveAuthState;
+
     const authStateReady = new Promise((resolve) => {
       resolveAuthState = resolve;
     });
+
     window.authStateReady = authStateReady;
 
+
     onAuthStateChanged(auth, (user) => {
+
       authStateResolved = true;
       window.currentUser = user;
+
       resolveAuthState(user);
 
+
       if (user) {
+
         if (playerAuthRedirectTimer) {
           clearTimeout(playerAuthRedirectTimer);
           playerAuthRedirectTimer = null;
         }
-        console.log('Player page: User logged in as', user.uid);
+
+        console.log(
+          'Player page: User logged in as',
+          user.uid
+        );
+
         return;
       }
+
 
       if (!authStateResolved || auth.currentUser) {
         return;
       }
 
+
       if (playerAuthRedirectTimer) {
         clearTimeout(playerAuthRedirectTimer);
       }
 
+
       playerAuthRedirectTimer = setTimeout(() => {
+
         if (authStateResolved && !auth.currentUser) {
-          console.log('Player page: No user logged in after auth settled, returning to dashboard');
+
+          console.log(
+            'Player page: No user logged in after auth settled, returning to dashboard'
+          );
+
           window.location.replace('dashboard.html');
         }
+
       }, 500);
+
     });
 
+
     function bytesToBase64(value) {
+
       let bytes;
 
+
       if (value instanceof ArrayBuffer) {
+
         bytes = new Uint8Array(value);
+
       } else if (ArrayBuffer.isView(value)) {
-        bytes = new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
-      } else if (value && typeof value.length === 'number') {
+
+        bytes = new Uint8Array(
+          value.buffer,
+          value.byteOffset,
+          value.byteLength
+        );
+
+      } else if (
+        value &&
+        typeof value.length === 'number'
+      ) {
+
         bytes = Uint8Array.from(value);
+
       } else {
+
         return null;
       }
 
+
       let binary = '';
+
       const chunkSize = 0x8000;
-      for (let index = 0; index < bytes.length; index += chunkSize) {
-        binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+
+
+      for (
+        let index = 0;
+        index < bytes.length;
+        index += chunkSize
+      ) {
+
+        binary += String.fromCharCode(
+          ...bytes.subarray(
+            index,
+            index + chunkSize
+          )
+        );
+
       }
+
+
       return btoa(binary);
     }
 
+
     async function serializeSaveState(value) {
+
       const binaryValue = bytesToBase64(value);
-      if (binaryValue !== null) return binaryValue;
-      if (value instanceof Blob) return bytesToBase64(await value.arrayBuffer());
+
+      if (binaryValue !== null) {
+        return binaryValue;
+      }
+
+
+      if (value instanceof Blob) {
+        return bytesToBase64(
+          await value.arrayBuffer()
+        );
+      }
+
+
       return value;
     }
 
+
     function base64ToBlobUrl(value) {
-      return URL.createObjectURL(new Blob([base64ToBytes(value)], { type: 'application/octet-stream' }));
+
+      return URL.createObjectURL(
+        new Blob(
+          [base64ToBytes(value)],
+          {
+            type: 'application/octet-stream'
+          }
+        )
+      );
+
     }
 
+
     function base64ToBytes(value) {
+
       const binary = atob(value);
-      const bytes = new Uint8Array(binary.length);
-      for (let index = 0; index < binary.length; index++) {
-        bytes[index] = binary.charCodeAt(index);
+
+      const bytes = new Uint8Array(
+        binary.length
+      );
+
+
+      for (
+        let index = 0;
+        index < binary.length;
+        index++
+      ) {
+
+        bytes[index] =
+          binary.charCodeAt(index);
+
       }
+
+
       return bytes;
     }
 
+
     const SAVE_CHUNK_SIZE = 700000;
+
     let pendingSavePromise = Promise.resolve();
 
+
     function openLocalSaveDb() {
+
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open('RetroHubLocalSaves', 1);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
+
+        const request =
+          indexedDB.open(
+            'RetroHubLocalSaves',
+            1
+          );
+
+
+        request.onerror = () =>
+          reject(request.error);
+
+
+        request.onsuccess = () =>
+          resolve(request.result);
+
+
         request.onupgradeneeded = () => {
-          request.result.createObjectStore('states', { keyPath: 'gameTitle' });
+
+          request.result.createObjectStore(
+            'states',
+            {
+              keyPath: 'gameTitle'
+            }
+          );
+
         };
+
       });
+
     }
 
-    async function saveStateLocally(gameTitle, state) {
-      const database = await openLocalSaveDb();
-      await new Promise((resolve, reject) => {
-        const transaction = database.transaction('states', 'readwrite');
-        transaction.objectStore('states').put({
-          gameTitle,
-          state,
-          timestamp: new Date().toISOString()
-        });
-        transaction.oncomplete = resolve;
-        transaction.onerror = () => reject(transaction.error);
-      });
+
+    async function saveStateLocally(
+      gameTitle,
+      state
+    ) {
+
+      const database =
+        await openLocalSaveDb();
+
+
+      await new Promise(
+        (resolve, reject) => {
+
+          const transaction =
+            database.transaction(
+              'states',
+              'readwrite'
+            );
+
+
+          transaction
+            .objectStore('states')
+            .put({
+              gameTitle,
+              state,
+              timestamp:
+                new Date().toISOString()
+            });
+
+
+          transaction.oncomplete =
+            resolve;
+
+          transaction.onerror =
+            () => reject(
+              transaction.error
+            );
+
+        }
+      );
+
+
       database.close();
     }
 
-    async function loadStateLocally(gameTitle) {
-      const database = await openLocalSaveDb();
-      const result = await new Promise((resolve, reject) => {
-        const request = database.transaction('states', 'readonly')
-          .objectStore('states')
-          .get(gameTitle);
-        request.onsuccess = () => resolve(request.result?.state || null);
-        request.onerror = () => reject(request.error);
-      });
+
+    async function loadStateLocally(
+      gameTitle
+    ) {
+
+      const database =
+        await openLocalSaveDb();
+
+
+      const result =
+        await new Promise(
+          (resolve, reject) => {
+
+            const request =
+              database
+                .transaction(
+                  'states',
+                  'readonly'
+                )
+                .objectStore('states')
+                .get(gameTitle);
+
+
+            request.onsuccess =
+              () => resolve(
+                request.result?.state ||
+                null
+              );
+
+
+            request.onerror =
+              () => reject(
+                request.error
+              );
+
+          }
+        );
+
+
       database.close();
+
       return result;
     }
 
-    window.saveStateLocally = saveStateLocally;
-    window.loadStateLocally = loadStateLocally;
-    window.base64ToBytes = base64ToBytes;
 
-    // Save handler
-    window.syncSaveToCloud = async (gameState) => {
-      if (!window.currentUser || !window.currentGameTitle) return;
-      
-      try {
-        let serializedState = await serializeSaveState(gameState);
-        if (typeof serializedState !== 'string') {
-          serializedState = JSON.stringify(serializedState);
+    window.saveStateLocally =
+      saveStateLocally;
+
+    window.loadStateLocally =
+      loadStateLocally;
+
+    window.base64ToBytes =
+      base64ToBytes;
+
+
+    window.syncSaveToCloud =
+      async (gameState) => {
+
+        if (
+          !window.currentUser ||
+          !window.currentGameTitle
+        ) {
+          return;
         }
 
-        await saveStateLocally(window.currentGameTitle, serializedState);
 
-        const saveRef = doc(db, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
-        const chunks = [];
-        for (let index = 0; index < serializedState.length; index += SAVE_CHUNK_SIZE) {
-          chunks.push(serializedState.slice(index, index + SAVE_CHUNK_SIZE));
+        try {
+
+          let serializedState =
+            await serializeSaveState(
+              gameState
+            );
+
+
+          if (
+            typeof serializedState !==
+            'string'
+          ) {
+
+            serializedState =
+              JSON.stringify(
+                serializedState
+              );
+
+          }
+
+
+          await saveStateLocally(
+            window.currentGameTitle,
+            serializedState
+          );
+
+
+          const saveRef =
+            doc(
+              db,
+              'saves',
+              window.currentUser.uid,
+              'games',
+              window.currentGameTitle
+            );
+
+
+          const chunks = [];
+
+
+          for (
+            let index = 0;
+            index < serializedState.length;
+            index += SAVE_CHUNK_SIZE
+          ) {
+
+            chunks.push(
+              serializedState.slice(
+                index,
+                index + SAVE_CHUNK_SIZE
+              )
+            );
+
+          }
+
+
+          await setDoc(
+            saveRef,
+            {
+              state: null,
+              stateFormat:
+                'chunked-text-v1',
+              chunkCount:
+                chunks.length,
+              totalLength:
+                serializedState.length,
+              timestamp:
+                new Date().toISOString()
+            },
+            {
+              merge: true
+            }
+          );
+
+
+          await Promise.all(
+            chunks.map(
+              (chunk, index) => {
+
+                const chunkRef =
+                  doc(
+                    saveRef,
+                    'chunks',
+                    String(index)
+                  );
+
+
+                return setDoc(
+                  chunkRef,
+                  {
+                    index,
+                    data: chunk
+                  }
+                );
+
+              }
+            )
+          );
+
+        } catch (err) {
+
+          console.warn(
+            'Save to cloud failed:',
+            err?.message || err
+          );
+
         }
 
-        await setDoc(saveRef, {
-          state: null,
-          stateFormat: 'chunked-text-v1',
-          chunkCount: chunks.length,
-          totalLength: serializedState.length,
-          timestamp: new Date().toISOString()
-        }, { merge: true });
-
-        await Promise.all(chunks.map((chunk, index) => {
-          const chunkRef = doc(saveRef, 'chunks', String(index));
-          return setDoc(chunkRef, { index, data: chunk });
-        }));
-      } catch (err) {
-        console.warn('Save to cloud failed:', err?.message || err);
-      }
-    };
-
-    window.saveCurrentGameState = async () => {
-      const emulator = window.EJS_emulator;
-      const getState = emulator?.gameManager?.getState;
-      if (!getState || !window.currentUser || !window.currentGameTitle) return false;
-
-      try {
-        const state = getState.call(emulator.gameManager);
-        if (state == null) return false;
-        pendingSavePromise = window.syncSaveToCloud(state);
-        await pendingSavePromise;
-        return true;
-      } catch (err) {
-        console.warn('Final save failed:', err?.message || err);
-        return false;
-      }
-    };
-
-    window.saveCurrentGameStateLocally = async () => {
-      const emulator = window.EJS_emulator;
-      const getState = emulator?.gameManager?.getState;
-      if (!getState || !window.currentGameTitle) return null;
-
-      try {
-        const state = getState.call(emulator.gameManager);
-        if (state == null) return null;
-        let serializedState = await serializeSaveState(state);
-        if (typeof serializedState !== 'string') {
-          serializedState = JSON.stringify(serializedState);
-        }
-        await saveStateLocally(window.currentGameTitle, serializedState);
-        return state;
-      } catch (err) {
-        console.warn('Local save failed:', err?.message || err);
-        return null;
-      }
-    };
-
-    window.suppressKnownEjsWarnings = () => {
-      const oldWarn = console.warn;
-      const patterns = [/Failed to execute 'getImageData'/i, /OffscreenCanvas/i];
-      console.warn = function(...args) {
-        const text = args[0]?.toString?.() || '';
-        if (!patterns.some(p => p.test(text))) {
-          oldWarn.apply(console, args);
-        }
       };
-    };
+
+
+    window.saveCurrentGameState =
+      async () => {
+
+        const emulator =
+          window.EJS_emulator;
+
+
+        const getState =
+          emulator?.gameManager?.getState;
+
+
+        if (
+          !getState ||
+          !window.currentUser ||
+          !window.currentGameTitle
+        ) {
+          return false;
+        }
+
+
+        try {
+
+          const state =
+            getState.call(
+              emulator.gameManager
+            );
+
+
+          if (state == null) {
+            return false;
+          }
+
+
+          pendingSavePromise =
+            window.syncSaveToCloud(
+              state
+            );
+
+
+          await pendingSavePromise;
+
+          return true;
+
+        } catch (err) {
+
+          console.warn(
+            'Final save failed:',
+            err?.message || err
+          );
+
+          return false;
+        }
+
+      };
+
+
+    window.saveCurrentGameStateLocally =
+      async () => {
+
+        const emulator =
+          window.EJS_emulator;
+
+
+        const getState =
+          emulator?.gameManager?.getState;
+
+
+        if (
+          !getState ||
+          !window.currentGameTitle
+        ) {
+          return null;
+        }
+
+
+        try {
+
+          const state =
+            getState.call(
+              emulator.gameManager
+            );
+
+
+          if (state == null) {
+            return null;
+          }
+
+
+          let serializedState =
+            await serializeSaveState(
+              state
+            );
+
+
+          if (
+            typeof serializedState !==
+            'string'
+          ) {
+
+            serializedState =
+              JSON.stringify(
+                serializedState
+              );
+
+          }
+
+
+          await saveStateLocally(
+            window.currentGameTitle,
+            serializedState
+          );
+
+
+          return state;
+
+        } catch (err) {
+
+          console.warn(
+            'Local save failed:',
+            err?.message || err
+          );
+
+          return null;
+        }
+
+      };
+
+
+    window.suppressKnownEjsWarnings =
+      () => {
+
+        const oldWarn =
+          console.warn;
+
+
+        const patterns = [
+          /Failed to execute 'getImageData'/i,
+          /OffscreenCanvas/i
+        ];
+
+
+        console.warn =
+          function (...args) {
+
+            const text =
+              args[0]
+                ?.toString?.() || '';
+
+
+            if (
+              !patterns.some(
+                p => p.test(text)
+              )
+            ) {
+
+              oldWarn.apply(
+                console,
+                args
+              );
+
+            }
+
+          };
+
+      };
+
   </script>
 
+
   <script>
-    // Get game parameters from URL
-    const params = new URLSearchParams(window.location.search);
-    const gameCore = params.get('core');
-    const gameRomUrl = params.get('romUrl');
-    const gameTitle = params.get('title');
 
-    window.currentGameTitle = gameTitle;
-    window.currentGameCore = gameCore;
-    window.currentGameRomUrl = gameRomUrl;
+    // ============================================================
+    // GET GAME PARAMETERS
+    // ============================================================
 
-    // Update title
-    document.getElementById('game-title').textContent = gameTitle || 'Game';
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+
+    const gameCore =
+      params.get('core');
+
+
+    const gameRomUrl =
+      params.get('romUrl');
+
+
+    const gameTitle =
+      params.get('title');
+
+
+    window.currentGameTitle =
+      gameTitle;
+
+
+    window.currentGameCore =
+      gameCore;
+
+
+    window.currentGameRomUrl =
+      gameRomUrl;
+
+
+    document.getElementById(
+      'game-title'
+    ).textContent =
+      gameTitle || 'Game';
+
+
+    // ============================================================
+    // FOCUS GAME
+    // ============================================================
 
     function focusGameCanvas() {
-      const gameContainer = document.getElementById('game');
-      if (!gameContainer) return;
-      gameContainer.focus();
-      const canvas = gameContainer.querySelector('canvas') || gameContainer.querySelector('iframe');
-      if (canvas) {
-        canvas.focus();
-      }
-    }
 
-    // Clears any stale control entries from localStorage
-    function sanitizeControlCache() {
-      try {
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.includes('EJS') || key.includes('controls') || key.includes('settings'))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(k => localStorage.removeItem(k));
-      } catch (e) {
-        console.warn('Control cache reset warning:', e);
-      }
-    }
+      const gameContainer =
+        document.getElementById(
+          'game'
+        );
 
-    async function resolvePlayableRomUrl(romPath) {
-      if (romPath && romPath.startsWith('https://archive.org')) {
-        const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
-        return `${proxyBaseUrl}/?url=${encodeURIComponent(romPath)}`;
-      }
-      return romPath;
-    }
 
-    async function bootEmulator() {
-      if (!gameCore || !gameRomUrl) {
-        showError('Missing game parameters (core or romUrl)');
+      if (!gameContainer) {
         return;
       }
 
-      try {
-        await window.authStateReady;
 
-        // Clear stale local control cache
-        sanitizeControlCache();
+      gameContainer.focus();
 
-        // Prepare game container
-        const gameDiv = document.getElementById('game');
-        gameDiv.innerHTML = '';
 
-        // Resolve ROM URL (handle Archive.org via proxy)
-        const playableUrl = await resolvePlayableRomUrl(gameRomUrl);
+      const canvas =
+        gameContainer.querySelector(
+          'canvas'
+        ) ||
+        gameContainer.querySelector(
+          'iframe'
+        );
 
-        // Set up EmulatorJS globals
-        window.EJS_player = '#game';
-        window.EJS_gameUrl = playableUrl;
-        window.EJS_core = gameCore;
-        window.EJS_pathtodata = 'https://cdn.emulatorjs.org/stable/data/';
-        window.EJS_gameid = gameTitle;
-        window.EJS_gameID = gameTitle;
-        window.EJS_startOnLoaded = true;
-        window.EJS_hideMenubar = false;
 
-        // Default Controls Object Mapping
-        window.EJS_defaultControls = {
-          0: { value: 'x', value2: '' },         // Button B -> Keyboard X
-          1: { value: 's', value2: '' },         // Button Y -> Keyboard S
-          2: { value: 'shift', value2: '' },     // Select / Mode -> Keyboard Shift
-          3: { value: 'enter', value2: '' },     // Start -> Keyboard Enter
-          4: { value: 'arrowup', value2: '' },   // Up -> Up Arrow
-          5: { value: 'arrowdown', value2: '' }, // Down -> Down Arrow
-          6: { value: 'arrowleft', value2: '' }, // Left -> Left Arrow
-          7: { value: 'arrowright', value2: '' },// Right -> Right Arrow
-          8: { value: 'z', value2: '' },         // Button A -> Keyboard Z
-          9: { value: 'a', value2: '' },         // Button X -> Keyboard A
-          10: { value: 'c', value2: '' },        // Button L / C -> Keyboard C
-          11: { value: 'd', value2: '' }         // Button R / Z -> Keyboard D
-        };
-
-        if (gameCore === 'fbneo' || gameCore === 'fba') {
-          const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
-          const biosUrl = 'https://archive.org/download/neo-geo-bios/neogeo.zip';
-          window.EJS_biosUrl = `${proxyBaseUrl}/?url=${encodeURIComponent(biosUrl)}`;
-        }
-
-        // Save handler
-        window.EJS_onSaveState = (data) => {
-          const payload = data && typeof data === 'object' && data.state !== undefined ? data.state : data;
-          pendingSavePromise = window.syncSaveToCloud(payload);
-          return pendingSavePromise;
-        };
-
-        window.EJS_onLoadState = () => {
-          console.log('Loaded saved game state into emulator');
-        };
-
-        window.EJS_onGameStart = () => {
-          focusGameCanvas();
-
-          // Sync controls at runtime into live EmulatorJS settings
-          if (window.EJS_emulator) {
-            if (window.EJS_emulator.keys) {
-              window.EJS_emulator.settings = window.EJS_emulator.settings || {};
-              window.EJS_emulator.settings.controls = window.EJS_emulator.keys;
-            }
-          }
-
-          let attempts = 0;
-          const focusInterval = setInterval(() => {
-            focusGameCanvas();
-            attempts++;
-            if (attempts > 10) clearInterval(focusInterval);
-          }, 300);
-
-          if (window.__pendingSavedStateBytes && window.EJS_emulator?.gameManager) {
-            window.EJS_emulator.gameManager.loadState(window.__pendingSavedStateBytes);
-            window.__pendingSavedStateBytes = null;
-            console.log('Applied saved game state to emulator');
-          }
-        };
-
-        // Load saved game state if it exists
-        if (window.currentUser && window.currentGameTitle && window.firebaseDb) {
-          try {
-            let savedState = null;
-            try {
-              savedState = await window.loadStateLocally(window.currentGameTitle);
-            } catch (localError) {
-              console.warn('Local save lookup failed; checking Firestore:', localError?.message || localError);
-            }
-            let saveData = { stateFormat: 'chunked-text-v1' };
-
-            if (savedState) {
-              console.log('Loaded saved game state from local storage');
-            } else {
-              console.log('No local save found; checking Firestore');
-              let saveRef = window.firestoreDoc(window.firebaseDb, 'saves', window.currentUser.uid, 'games', window.currentGameTitle);
-              let saveSnap = await window.firestoreGetDoc(saveRef);
-
-              if (!saveSnap.exists()) {
-                saveRef = window.firestoreDoc(window.firebaseDoc(window.firebaseDb, 'users', window.currentUser.uid, 'saves', window.currentGameTitle));
-                saveSnap = await window.firestoreGetDoc(saveRef);
-              }
-
-              if (saveSnap.exists()) {
-                saveData = saveSnap.data();
-                savedState = saveData.state;
-
-                if (saveData.stateFormat === 'chunked-text-v1' && saveData.chunkCount) {
-                  savedState = '';
-                  for (let index = 0; index < saveData.chunkCount; index++) {
-                    const chunkSnap = await window.firestoreGetDoc(window.firestoreDoc(saveRef, 'chunks', String(index)));
-                    if (!chunkSnap.exists()) throw new Error(`Missing save chunk ${index}`);
-                    savedState += chunkSnap.data().data || '';
-                  }
-                }
-
-                if (savedState) {
-                  await window.saveStateLocally(window.currentGameTitle, savedState);
-                  console.log('Loaded saved game state from Firestore and cached locally');
-                } else {
-                  console.log('No saved game state found in Firestore');
-                }
-              }
-            }
-
-            if (savedState) {
-              if (saveData.stateFormat === 'chunked-text-v1' || typeof savedState === 'string') {
-                window.__pendingSavedStateBytes = window.base64ToBytes(savedState);
-                console.log('Prepared Firestore save bytes for emulator');
-              } else {
-                window.EJS_loadStateURL = savedState;
-              }
-            } else {
-              console.log('Firestore document exists but contains no state data');
-            }
-          } catch (err) {
-            console.warn('Save load failed:', err?.message || err);
-          }
-        }
-
-        // Load EmulatorJS loader
-        const script = document.createElement('script');
-        script.src = 'https://cdn.emulatorjs.org/stable/data/loader.js';
-        script.async = false;
-        
-        script.onload = () => {
-          console.log('EmulatorJS loader loaded');
-          setTimeout(() => {
-            const loading = document.getElementById('loading-indicator');
-            if (loading) loading.style.display = 'none';
-            focusGameCanvas();
-          }, 2000);
-
-          setupAutosave();
-          suppressKnownEjsWarnings();
-        };
-
-        script.onerror = () => {
-          showError('Failed to load EmulatorJS. Check your internet connection.');
-        };
-
-        document.body.appendChild(script);
-
-      } catch (err) {
-        showError('Error booting emulator: ' + (err?.message || err));
-      }
-    }
-
-    function setupAutosave() {
-      if (window.currentAutoSaveInterval) clearInterval(window.currentAutoSaveInterval);
-      
-      window.currentAutoSaveInterval = setInterval(async () => {
-        if (!window.EJS_emulator || !window.currentUser) return;
-        
-        try {
-          const state = window.EJS_emulator.gameManager?.getState?.();
-          if (state != null) {
-            pendingSavePromise = window.syncSaveToCloud(state);
-            await pendingSavePromise;
-            console.log('Auto-saved game state');
-          }
-        } catch (err) {
-          console.warn('Auto-save failed:', err?.message || err);
-        }
-      }, 120000);
-    }
-
-    function showError(msg) {
-      const errorDiv = document.getElementById('error-msg');
-      errorDiv.textContent = msg;
-      errorDiv.style.display = 'block';
-      document.getElementById('loading-indicator').style.display = 'none';
-    }
-
-    async function closeGame() {
-      const closeButton = document.querySelector('.close-btn');
-      if (closeButton) {
-        closeButton.disabled = true;
-        closeButton.textContent = 'Saving...';
-      }
-
-      if (window.currentAutoSaveInterval) {
-        clearInterval(window.currentAutoSaveInterval);
-      }
-
-      const state = await window.saveCurrentGameStateLocally();
-      if (state != null && window.currentUser) {
-        pendingSavePromise = window.syncSaveToCloud(state);
-      }
-
-      if (window.EJS_emulator && typeof window.EJS_emulator.destroy === 'function') {
-        try {
-          window.EJS_emulator.destroy();
-        } catch (e) {
-          console.warn('Emulator destroy failed:', e);
-        }
-      }
-
-      window.location.assign('dashboard.html');
-    }
-
-    window.closeGame = closeGame;
-
-    // Focus emulator canvas on click
-    document.getElementById('game').addEventListener('click', focusGameCanvas);
-
-    // Global Keydown Router ensuring canvas focus on keypress
-    window.addEventListener('keydown', (e) => {
-      const canvas = document.querySelector('#game canvas');
-      if (canvas && document.activeElement !== canvas) {
+      if (canvas) {
         canvas.focus();
       }
-    }, true);
 
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', bootEmulator);
-    } else {
-      bootEmulator();
     }
+
+
+    // ============================================================
+    // CLEAR OLD EMULATORJS CONTROL SETTINGS
+    // ============================================================
+
+    function sanitizeControlCache() {
+
+      try {
+
+        const keysToRemove = [];
+
+
+        for (
+          let i = 0;
+          i < localStorage.length;
+          i++
+        ) {
+
+          const key =
+            localStorage.key(i);
+
+
+          if (
+            key &&
+            (
+              key.includes('EJS') ||
+              key.includes('controls') ||
+              key.includes('settings')
+            )
+          ) {
+
+            keysToRemove.push(key);
+
+          }
+
+        }
+
+
+        keysToRemove.forEach(
+          k => localStorage.removeItem(k)
+        );
+
+
+      } catch (e) {
+
+        console.warn(
+          'Control cache reset warning:',
+          e
+        );
+
+      }
+
+    }
+
+
+    // ============================================================
+    // CONTROL SCHEME
+    // ============================================================
+
+    function getControlScheme(core) {
+
+      if (!core) {
+        return 'snes';
+      }
+
+
+      const c =
+        core.toLowerCase();
+
+
+      if (
+        c.includes('pico') ||
+        c.includes('genesis') ||
+        c.includes('megadrive') ||
+        c.includes('md') ||
+        c.includes('sega')
+      ) {
+        return 'segaMD';
+      }
+
+
+      if (
+        c.includes('snes') ||
+        c.includes('sfc')
+      ) {
+        return 'snes';
+      }
+
+
+      if (
+        c.includes('nes') ||
+        c.includes('fceumm') ||
+        c.includes('nestopia')
+      ) {
+        return 'nes';
+      }
+
+
+      if (
+        c.includes('gba') ||
+        c.includes('mgba')
+      ) {
+        return 'gba';
+      }
+
+
+      if (c.includes('gb')) {
+        return 'gb';
+      }
+
+
+      if (
+        c.includes('n64') ||
+        c.includes('mupen')
+      ) {
+        return 'n64';
+      }
+
+
+      if (
+        c.includes('fbneo') ||
+        c.includes('fba') ||
+        c.includes('mame') ||
+        c.includes('arcade')
+      ) {
+        return 'arcade';
+      }
+
+
+      if (
+        c.includes('psx') ||
+        c.includes('pcsx')
+      ) {
+        return 'psx';
+      }
+
+
+      return 'snes';
+
+    }
+
+
+    // ============================================================
+    // ARCHIVE.ORG ROM PROXY
+    // ============================================================
+
+    async function resolvePlayableRomUrl(
+      romPath
+    ) {
+
+      if (
+        romPath &&
+        romPath.startsWith(
+          'https://archive.org'
+        )
+      ) {
+
+        const proxyBaseUrl =
+          'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
+
+
+        return `${proxyBaseUrl}/?url=${encodeURIComponent(romPath)}`;
+
+      }
+
+
+      return romPath;
+    }
+
+
+    // ============================================================
+    // START EMULATOR
+    // ============================================================
+
+    async function bootEmulator() {
+
+      if (
+        !gameCore ||
+        !gameRomUrl
+      ) {
+
+        showError(
+          'Missing game parameters (core or romUrl)'
+        );
+
+        return;
+      }
+
+
+      try {
+
+        await window.authStateReady;
+
+
+        // Clear old control mappings.
+        sanitizeControlCache();
+
+
+        const gameDiv =
+          document.getElementById(
+            'game'
+          );
+
+
+        gameDiv.innerHTML = '';
+
+
+        const playableUrl =
+          await resolvePlayableRomUrl(
+            gameRomUrl
+          );
+
+
+        // ========================================================
+        // EMULATORJS GLOBAL CONFIGURATION
+        // ========================================================
+
+        window.EJS_player =
+          '#game';
+
+
+        window.EJS_gameUrl =
+          playableUrl;
+
+
+        window.EJS_core =
+          gameCore;
+
+
+        window.EJS_pathtodata =
+          'https://cdn.emulatorjs.org/stable/data/';
+
+
+        window.EJS_gameid =
+          gameTitle;
+
+
+        window.EJS_gameID =
+          gameTitle;
+
+
+        window.EJS_startOnLoaded =
+          true;
+
+
+        window.EJS_hideMenubar =
+          false;
+
+
+        // ========================================================
+        // CONTROL SCHEME
+        // ========================================================
+
+        window.EJS_controlScheme =
+          getControlScheme(
+            gameCore
+          );
+
+
+        // ========================================================
+        // SEGA 6-BUTTON CONTROLLER
+        // ========================================================
+
+        if (
+          gameCore &&
+          (
+            gameCore.includes('pico') ||
+            gameCore.includes('genesis') ||
+            gameCore.includes('megadrive') ||
+            gameCore.includes('sega')
+          )
+        ) {
+
+          window.EJS_coreOptions = {
+
+            'picodrive_input1':
+              '6 button pad',
+
+            'genesis_plus_gx_input1':
+              '6 button pad'
+
+          };
+
+        }
+
+
+        // ========================================================
+        // PRE-MAPPED KEYBOARD CONTROLS
+        //
+        // IMPORTANT:
+        // EmulatorJS expects:
+        //
+        // EJS_defaultControls
+        //   -> player
+        //      -> button
+        //
+        // Player 1 = 0
+        //
+        // Keyboard layout:
+        //
+        // Z      = A
+        // X      = B
+        // A      = X
+        // S      = Y
+        // C      = L
+        // D      = R
+        // Shift  = Select
+        // Enter  = Start
+        // Arrows = D-Pad
+        // ========================================================
+
+        window.EJS_defaultControls = {
+
+          // PLAYER 1
+          0: {
+
+            // B
+            0: {
+              value: 'x',
+              value2: 'BUTTON_2'
+            },
+
+            // Y
+            1: {
+              value: 's',
+              value2: 'BUTTON_4'
+            },
+
+            // Select
+            2: {
+              value: 'shift',
+              value2: 'SELECT'
+            },
+
+            // Start
+            3: {
+              value: 'enter',
+              value2: 'START'
+            },
+
+            // D-Pad Up
+            4: {
+              value: 'up arrow',
+              value2: 'DPAD_UP'
+            },
+
+            // D-Pad Down
+            5: {
+              value: 'down arrow',
+              value2: 'DPAD_DOWN'
+            },
+
+            // D-Pad Left
+            6: {
+              value: 'left arrow',
+              value2: 'DPAD_LEFT'
+            },
+
+            // D-Pad Right
+            7: {
+              value: 'right arrow',
+              value2: 'DPAD_RIGHT'
+            },
+
+            // A
+            8: {
+              value: 'z',
+              value2: 'BUTTON_1'
+            },
+
+            // X
+            9: {
+              value: 'a',
+              value2: 'BUTTON_3'
+            },
+
+            // L
+            10: {
+              value: 'c',
+              value2: 'BUTTON_5'
+            },
+
+            // R
+            11: {
+              value: 'd',
+              value2: 'BUTTON_6'
+            }
+
+          }
+
+        };
+
+
+        // ========================================================
+        // FBNEO / FBA BIOS
+        // ========================================================
+
+        if (
+          gameCore === 'fbneo' ||
+          gameCore === 'fba'
+        ) {
+
+          const proxyBaseUrl =
+            'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
+
+
+          const biosUrl =
+            'https://archive.org/download/neo-geo-bios/neogeo.zip';
+
+
+          window.EJS_biosUrl =
+            `${proxyBaseUrl}/?url=${encodeURIComponent(biosUrl)}`;
+
+        }
+
+
+        // ========================================================
+        // SAVE STATE CALLBACK
+        // ========================================================
+
+        window.EJS_onSaveState =
+          (data) => {
+
+            const payload =
+              data &&
+              typeof data === 'object' &&
+              data.state !== undefined
+                ? data.state
+                : data;
+
+
+            pendingSavePromise =
+              window.syncSaveToCloud(
+                payload
+              );
+
+
+            return pendingSavePromise;
+
+          };
+
+
+        window.EJS_onLoadState =
+          () => {
+
+            console.log(
+              'Loaded saved game state into emulator'
+            );
+
+          };
+
+
+        // ========================================================
+        // GAME START
+        // ========================================================
+
+        window.EJS_onGameStart =
+          () => {
+
+            focusGameCanvas();
+
+
+            let attempts = 0;
+
+
+            const focusInterval =
+              setInterval(
+                () => {
+
+                  focusGameCanvas();
+
+                  attempts++;
+
+
+                  if (
+                    attempts > 10
+                  ) {
+
+                    clearInterval(
+                      focusInterval
+                    );
+
+                  }
+
+                },
+                300
+              );
+
+
+            if (
+              window.__pendingSavedStateBytes &&
+              window.EJS_emulator?.gameManager
+            ) {
+
+              window.EJS_emulator
+                .gameManager
+                .loadState(
+                  window.__pendingSavedStateBytes
+                );
+
+
+              window.__pendingSavedStateBytes =
+                null;
+
+
+              console.log(
+                'Applied saved game state to emulator'
+              );
+
+            }
+
+          };
+
+
+        // ========================================================
+        // LOAD SAVED GAME STATE
+        // ========================================================
+
+        if (
+          window.currentUser &&
+          window.currentGameTitle &&
+          window.firebaseDb
+        ) {
+
+          try {
+
+            let savedState = null;
+
+
+            try {
+
+              savedState =
+                await window.loadStateLocally(
+                  window.currentGameTitle
+                );
+
+
+            } catch (localError) {
+
+              console.warn(
+                'Local save lookup failed; checking Firestore:',
+                localError?.message ||
+                localError
+              );
+
+            }
+
+
+            let saveData = {
+              stateFormat:
+                'chunked-text-v1'
+            };
+
+
+            if (savedState) {
+
+              console.log(
+                'Loaded saved game state from local storage'
+              );
+
+            } else {
+
+              console.log(
+                'No local save found; checking Firestore'
+              );
+
+
+              let saveRef =
+                window.firestoreDoc(
+                  window.firebaseDb,
+                  'saves',
+                  window.currentUser.uid,
+                  'games',
+                  window.currentGameTitle
+                );
+
+
+              let saveSnap =
+                await window.firestoreGetDoc(
+                  saveRef
+                );
+
+
+              if (!saveSnap.exists()) {
+
+                saveRef =
+                  window.firestoreDoc(
+                    window.firestoreDoc(
+                      window.firebaseDb,
+                      'users',
+                      window.currentUser.uid,
+                      'saves',
+                      window.currentGameTitle
+                    )
+                  );
+
+
+                saveSnap =
+                  await window.firestoreGetDoc(
+                    saveRef
+                  );
+
+              }
+
+
+              if (saveSnap.exists()) {
+
+                saveData =
+                  saveSnap.data();
+
+
+                savedState =
+                  saveData.state;
+
+
+                if (
+                  saveData.stateFormat ===
+                    'chunked-text-v1' &&
+                  saveData.chunkCount
+                ) {
+
+                  savedState = '';
+
+
+                  for (
+                    let index = 0;
+                    index < saveData.chunkCount;
+                    index++
+                  ) {
+
+                    const chunkSnap =
+                      await window.firestoreGetDoc(
+                        window.firestoreDoc(
+                          saveRef,
+                          'chunks',
+                          String(index)
+                        )
+                      );
+
+
+                    if (
+                      !chunkSnap.exists()
+                    ) {
+
+                      throw new Error(
+                        `Missing save chunk ${index}`
+                      );
+
+                    }
+
+
+                    savedState +=
+                      chunkSnap
+                        .data()
+                        .data || '';
+
+                  }
+
+                }
+
+
+                if (savedState) {
+
+                  await window.saveStateLocally(
+                    window.currentGameTitle,
+                    savedState
+                  );
+
+
+                  console.log(
+                    'Loaded saved game state from Firestore and cached locally'
+                  );
+
+                } else {
+
+                  console.log(
+                    'No saved game state found in Firestore'
+                  );
+
+                }
+
+              }
+
+            }
+
+
+            if (savedState) {
+
+              if (
+                saveData.stateFormat ===
+                  'chunked-text-v1' ||
+                typeof savedState ===
+                  'string'
+              ) {
+
+                window.__pendingSavedStateBytes =
+                  window.base64ToBytes(
+                    savedState
+                  );
+
+
+                console.log(
+                  'Prepared Firestore save bytes for emulator'
+                );
+
+              } else {
+
+                window.EJS_loadStateURL =
+                  savedState;
+
+              }
+
+            } else {
+
+              console.log(
+                'Firestore document exists but contains no state data'
+              );
+
+            }
+
+
+          } catch (err) {
+
+            console.warn(
+              'Save load failed:',
+              err?.message || err
+            );
+
+          }
+
+        }
+
+
+        // ========================================================
+        // LOAD EMULATORJS
+        // ========================================================
+
+        const script =
+          document.createElement(
+            'script'
+          );
+
+
+        script.src =
+          'https://cdn.emulatorjs.org/stable/data/loader.js';
+
+
+        script.async = false;
+
+
+        script.onload =
+          () => {
+
+            console.log(
+              'EmulatorJS loader loaded'
+            );
+
+
+            setTimeout(
+              () => {
+
+                const loading =
+                  document.getElementById(
+                    'loading-indicator'
+                  );
+
+
+                if (loading) {
+                  loading.style.display =
+                    'none';
+                }
+
+
+                focusGameCanvas();
+
+              },
+              2000
+            );
+
+
+            setupAutosave();
+
+
+            window.suppressKnownEjsWarnings();
+
+          };
+
+
+        script.onerror =
+          () => {
+
+            showError(
+              'Failed to load EmulatorJS. Check your internet connection.'
+            );
+
+          };
+
+
+        document.body.appendChild(
+          script
+        );
+
+
+      } catch (err) {
+
+        showError(
+          'Error booting emulator: ' +
+          (err?.message || err)
+        );
+
+      }
+
+    }
+
+
+    // ============================================================
+    // AUTOSAVE
+    // ============================================================
+
+    function setupAutosave() {
+
+      if (
+        window.currentAutoSaveInterval
+      ) {
+
+        clearInterval(
+          window.currentAutoSaveInterval
+        );
+
+      }
+
+
+      window.currentAutoSaveInterval =
+        setInterval(
+          async () => {
+
+            if (
+              !window.EJS_emulator ||
+              !window.currentUser
+            ) {
+
+              return;
+
+            }
+
+
+            try {
+
+              const state =
+                window.EJS_emulator
+                  .gameManager
+                  ?.getState?.();
+
+
+              if (state != null) {
+
+                pendingSavePromise =
+                  window.syncSaveToCloud(
+                    state
+                  );
+
+
+                await pendingSavePromise;
+
+
+                console.log(
+                  'Auto-saved game state'
+                );
+
+              }
+
+            } catch (err) {
+
+              console.warn(
+                'Auto-save failed:',
+                err?.message || err
+              );
+
+            }
+
+          },
+          120000
+        );
+
+    }
+
+
+    // ============================================================
+    // ERROR DISPLAY
+    // ============================================================
+
+    function showError(msg) {
+
+      const errorDiv =
+        document.getElementById(
+          'error-msg'
+        );
+
+
+      errorDiv.textContent =
+        msg;
+
+
+      errorDiv.style.display =
+        'block';
+
+
+      document.getElementById(
+        'loading-indicator'
+      ).style.display =
+        'none';
+
+    }
+
+
+    // ============================================================
+    // SAVE & EXIT
+    // ============================================================
+
+    async function closeGame() {
+
+      const closeButton =
+        document.querySelector(
+          '.close-btn'
+        );
+
+
+      if (closeButton) {
+
+        closeButton.disabled =
+          true;
+
+
+        closeButton.textContent =
+          'Saving...';
+
+      }
+
+
+      if (
+        window.currentAutoSaveInterval
+      ) {
+
+        clearInterval(
+          window.currentAutoSaveInterval
+        );
+
+      }
+
+
+      const state =
+        await window.saveCurrentGameStateLocally();
+
+
+      if (
+        state != null &&
+        window.currentUser
+      ) {
+
+        pendingSavePromise =
+          window.syncSaveToCloud(
+            state
+          );
+
+        // IMPORTANT:
+        // Wait for the cloud save to finish
+        // before leaving the page.
+
+        await pendingSavePromise;
+
+      }
+
+
+      if (
+        window.EJS_emulator &&
+        typeof window.EJS_emulator.destroy ===
+          'function'
+      ) {
+
+        try {
+
+          window.EJS_emulator.destroy();
+
+        } catch (e) {
+
+          console.warn(
+            'Emulator destroy failed:',
+            e
+          );
+
+        }
+
+      }
+
+
+      window.location.assign(
+        'dashboard.html'
+      );
+
+    }
+
+
+    window.closeGame =
+      closeGame;
+
+
+    // ============================================================
+    // FOCUS EMULATOR WHEN CLICKED
+    // ============================================================
+
+    document
+      .getElementById('game')
+      .addEventListener(
+        'click',
+        focusGameCanvas
+      );
+
+
+    // ============================================================
+    // START
+    // ============================================================
+
+    if (
+      document.readyState ===
+      'loading'
+    ) {
+
+      document.addEventListener(
+        'DOMContentLoaded',
+        bootEmulator
+      );
+
+    } else {
+
+      bootEmulator();
+
+    }
+
   </script>
+
 </body>
 </html>
+```
