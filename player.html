@@ -405,6 +405,22 @@
       }
     }
 
+    // Clears any stale control entries from localStorage
+    function sanitizeControlCache() {
+      try {
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.includes('EJS') || key.includes('controls') || key.includes('settings'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
+      } catch (e) {
+        console.warn('Control cache reset warning:', e);
+      }
+    }
+
     async function resolvePlayableRomUrl(romPath) {
       if (romPath && romPath.startsWith('https://archive.org')) {
         const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
@@ -421,6 +437,9 @@
 
       try {
         await window.authStateReady;
+
+        // Clear stale local control cache
+        sanitizeControlCache();
 
         // Prepare game container
         const gameDiv = document.getElementById('game');
@@ -439,20 +458,20 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // Default keyboard control mapping
+        // Default Controls Object Mapping (Prevents TypeError in setupKeys)
         window.EJS_defaultControls = {
-          0: 'x',         // Button B -> Keyboard X
-          1: 's',         // Button Y -> Keyboard S
-          2: 'shift',     // Select -> Keyboard Shift
-          3: 'enter',     // Start -> Keyboard Enter
-          4: 'arrowup',   // Up -> Up Arrow
-          5: 'arrowdown', // Down -> Down Arrow
-          6: 'arrowleft', // Left -> Left Arrow
-          7: 'arrowright',// Right -> Right Arrow
-          8: 'z',         // Button A -> Keyboard Z
-          9: 'a',         // Button X -> Keyboard A
-          10: 'c',        // Button L / C -> Keyboard C
-          11: 'd'         // Button R / Z -> Keyboard D
+          0: { value: 'x', value2: '' },         // Button B -> Keyboard X
+          1: { value: 's', value2: '' },         // Button Y -> Keyboard S
+          2: { value: 'shift', value2: '' },     // Select / Mode -> Keyboard Shift
+          3: { value: 'enter', value2: '' },     // Start -> Keyboard Enter
+          4: { value: 'arrowup', value2: '' },   // Up -> Up Arrow
+          5: { value: 'arrowdown', value2: '' }, // Down -> Down Arrow
+          6: { value: 'arrowleft', value2: '' }, // Left -> Left Arrow
+          7: { value: 'arrowright', value2: '' },// Right -> Right Arrow
+          8: { value: 'z', value2: '' },         // Button A -> Keyboard Z
+          9: { value: 'a', value2: '' },         // Button X -> Keyboard A
+          10: { value: 'c', value2: '' },        // Button L / C -> Keyboard C
+          11: { value: 'd', value2: '' }         // Button R / Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
