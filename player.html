@@ -458,6 +458,27 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
+        // Force Mega Drive 6-Button Controller Scheme
+        if (gameCore.includes('pico') || gameCore.includes('genesis') || gameCore.includes('megadrive') || gameCore.includes('sega')) {
+          window.EJS_controlScheme = 'segaMD';
+        }
+
+        // Global default controls map passed directly to EmulatorJS
+        window.EJS_defaultControls = {
+          0: 'x',         // Sega B -> Keyboard X
+          1: 's',         // Sega Y -> Keyboard S
+          2: 'shift',     // Sega Mode -> Keyboard Shift
+          3: 'enter',     // Sega Start -> Keyboard Enter
+          4: 'arrowup',   // D-Pad Up -> Up Arrow
+          5: 'arrowdown', // D-Pad Down -> Down Arrow
+          6: 'arrowleft', // D-Pad Left -> Left Arrow
+          7: 'arrowright',// D-Pad Right -> Right Arrow
+          8: 'z',         // Sega A -> Keyboard Z
+          9: 'a',         // Sega X -> Keyboard A
+          10: 'c',        // Sega C -> Keyboard C
+          11: 'd'         // Sega Z -> Keyboard D
+        };
+
         if (gameCore === 'fbneo' || gameCore === 'fba') {
           const proxyBaseUrl = 'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
           const biosUrl = 'https://archive.org/download/neo-geo-bios/neogeo.zip';
@@ -478,23 +499,14 @@
         window.EJS_onGameStart = () => {
           focusGameCanvas();
 
-          // Safely inject 6-button Mega Drive + Enter Start mapping
+          // Runtime sync into live EmulatorJS controls array
           if (window.EJS_emulator) {
-            const keysObj = window.EJS_emulator.keys || window.EJS_emulator.controls;
+            const keysObj = window.EJS_emulator.keys || window.EJS_emulator.controls || (window.EJS_emulator.settings && window.EJS_emulator.settings.controls);
             if (keysObj) {
               const keyMap = {
-                0: 'x',         // Sega B -> Keyboard X
-                1: 's',         // Sega Y -> Keyboard S
-                2: 'shift',     // Sega Mode -> Keyboard Shift
-                3: 'enter',     // Sega Start -> Keyboard Enter
-                4: 'arrowup',   // D-Pad Up -> Up Arrow
-                5: 'arrowdown', // D-Pad Down -> Down Arrow
-                6: 'arrowleft', // D-Pad Left -> Left Arrow
-                7: 'arrowright',// D-Pad Right -> Right Arrow
-                8: 'z',         // Sega A -> Keyboard Z
-                9: 'a',         // Sega X -> Keyboard A
-                10: 'c',        // Sega C -> Keyboard C
-                11: 'd'         // Sega Z -> Keyboard D
+                0: 'x', 1: 's', 2: 'shift', 3: 'enter',
+                4: 'arrowup', 5: 'arrowdown', 6: 'arrowleft', 7: 'arrowright',
+                8: 'z', 9: 'a', 10: 'c', 11: 'd'
               };
 
               for (let idx in keyMap) {
@@ -502,7 +514,7 @@
                   if (typeof keysObj[idx] === 'object') {
                     keysObj[idx].value = keyMap[idx];
                   } else {
-                    keysObj[idx] = { value: keyMap[idx], value2: '' };
+                    keysObj[idx] = keyMap[idx];
                   }
                 }
               }
