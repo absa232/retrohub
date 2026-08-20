@@ -478,23 +478,23 @@
         window.EJS_onGameStart = () => {
           focusGameCanvas();
 
-          // Safely inject mapped controls directly into live EmulatorJS keys instance
+          // Safely inject 6-button Mega Drive + Enter Start mapping
           if (window.EJS_emulator) {
             const keysObj = window.EJS_emulator.keys || window.EJS_emulator.controls;
             if (keysObj) {
               const keyMap = {
-                0: 'x',         // B: Mega Drive B -> Keyboard X
-                1: 's',         // Y: Mega Drive Y -> Keyboard S
-                2: 'shift',     // SELECT: Mode -> Keyboard Shift
-                3: 'enter',     // START: Start -> Keyboard Enter
-                4: 'arrowup',   // UP: D-Pad Up -> Up Arrow
-                5: 'arrowdown', // DOWN: D-Pad Down -> Down Arrow
-                6: 'arrowleft', // LEFT: D-Pad Left -> Left Arrow
-                7: 'arrowright',// RIGHT: D-Pad Right -> Right Arrow
-                8: 'z',         // A: Mega Drive A -> Keyboard Z
-                9: 'a',         // X: Mega Drive X -> Keyboard A
-                10: 'c',        // L: Mega Drive C -> Keyboard C
-                11: 'd'         // R: Mega Drive Z -> Keyboard D
+                0: 'x',         // Sega B -> Keyboard X
+                1: 's',         // Sega Y -> Keyboard S
+                2: 'shift',     // Sega Mode -> Keyboard Shift
+                3: 'enter',     // Sega Start -> Keyboard Enter
+                4: 'arrowup',   // D-Pad Up -> Up Arrow
+                5: 'arrowdown', // D-Pad Down -> Down Arrow
+                6: 'arrowleft', // D-Pad Left -> Left Arrow
+                7: 'arrowright',// D-Pad Right -> Right Arrow
+                8: 'z',         // Sega A -> Keyboard Z
+                9: 'a',         // Sega X -> Keyboard A
+                10: 'c',        // Sega C -> Keyboard C
+                11: 'd'         // Sega Z -> Keyboard D
               };
 
               for (let idx in keyMap) {
