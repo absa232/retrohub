@@ -458,25 +458,20 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // Force Mega Drive 6-Button Controller Scheme
-        if (gameCore.includes('pico') || gameCore.includes('genesis') || gameCore.includes('megadrive') || gameCore.includes('sega')) {
-          window.EJS_controlScheme = 'segaMD';
-        }
-
-        // Global default controls map passed directly to EmulatorJS
+        // Mega Drive 6-Button Scheme Key Map
         window.EJS_defaultControls = {
-          0: 'x',         // Sega B -> Keyboard X
-          1: 's',         // Sega Y -> Keyboard S
-          2: 'shift',     // Sega Mode -> Keyboard Shift
-          3: 'enter',     // Sega Start -> Keyboard Enter
-          4: 'arrowup',   // D-Pad Up -> Up Arrow
-          5: 'arrowdown', // D-Pad Down -> Down Arrow
-          6: 'arrowleft', // D-Pad Left -> Left Arrow
-          7: 'arrowright',// D-Pad Right -> Right Arrow
-          8: 'z',         // Sega A -> Keyboard Z
-          9: 'a',         // Sega X -> Keyboard A
-          10: 'c',        // Sega C -> Keyboard C
-          11: 'd'         // Sega Z -> Keyboard D
+          0: { value: 'x', value2: '' },         // B: Sega B -> Keyboard X
+          1: { value: 's', value2: '' },         // Y: Sega Y -> Keyboard S
+          2: { value: 'shift', value2: '' },     // SELECT: Sega Mode -> Keyboard Shift
+          3: { value: 'enter', value2: '' },     // START: Sega Start -> Keyboard Enter
+          4: { value: 'arrowup', value2: '' },   // UP: D-Pad Up -> Up Arrow
+          5: { value: 'arrowdown', value2: '' }, // DOWN: D-Pad Down -> Down Arrow
+          6: { value: 'arrowleft', value2: '' }, // LEFT: D-Pad Left -> Left Arrow
+          7: { value: 'arrowright', value2: '' },// RIGHT: D-Pad Right -> Right Arrow
+          8: { value: 'z', value2: '' },         // A: Sega A -> Keyboard Z
+          9: { value: 'a', value2: '' },         // X: Sega X -> Keyboard A
+          10: { value: 'c', value2: '' },        // L: Sega C -> Keyboard C
+          11: { value: 'd', value2: '' }         // R: Sega Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
@@ -498,28 +493,6 @@
 
         window.EJS_onGameStart = () => {
           focusGameCanvas();
-
-          // Runtime sync into live EmulatorJS controls array
-          if (window.EJS_emulator) {
-            const keysObj = window.EJS_emulator.keys || window.EJS_emulator.controls || (window.EJS_emulator.settings && window.EJS_emulator.settings.controls);
-            if (keysObj) {
-              const keyMap = {
-                0: 'x', 1: 's', 2: 'shift', 3: 'enter',
-                4: 'arrowup', 5: 'arrowdown', 6: 'arrowleft', 7: 'arrowright',
-                8: 'z', 9: 'a', 10: 'c', 11: 'd'
-              };
-
-              for (let idx in keyMap) {
-                if (keysObj[idx]) {
-                  if (typeof keysObj[idx] === 'object') {
-                    keysObj[idx].value = keyMap[idx];
-                  } else {
-                    keysObj[idx] = keyMap[idx];
-                  }
-                }
-              }
-            }
-          }
 
           let attempts = 0;
           const focusInterval = setInterval(() => {
