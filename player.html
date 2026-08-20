@@ -87,6 +87,10 @@
       filter: brightness(1.06);
     }
 
+    /*
+     * Hide EmulatorJS virtual controls.
+     * Keyboard controls remain active.
+     */
     .ejs_virtualGamepad_parent,
     .ejs_virtualGamepad_top,
     .ejs_virtualGamepad_bottom,
@@ -155,7 +159,9 @@
   <div id="game-container">
 
     <div class="top-bar">
-      <div class="game-title" id="game-title">Loading...</div>
+      <div class="game-title" id="game-title">
+        Loading...
+      </div>
 
       <button class="close-btn" onclick="closeGame()">
         Save & Exit Game
@@ -174,7 +180,10 @@
   </div>
 
 
-  <!-- Firebase -->
+  <!-- ============================================================
+       FIREBASE
+       ============================================================ -->
+
   <script type="module">
 
     import {
@@ -190,8 +199,7 @@
       getFirestore,
       doc,
       getDoc,
-      setDoc,
-      updateDoc
+      setDoc
     } from "https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore.js";
 
 
@@ -221,12 +229,13 @@
 
     let playerAuthRedirectTimer = null;
     let authStateResolved = false;
-
     let resolveAuthState;
+
 
     const authStateReady = new Promise((resolve) => {
       resolveAuthState = resolve;
     });
+
 
     window.authStateReady = authStateReady;
 
@@ -234,6 +243,7 @@
     onAuthStateChanged(auth, (user) => {
 
       authStateResolved = true;
+
       window.currentUser = user;
 
       resolveAuthState(user);
@@ -267,13 +277,19 @@
 
       playerAuthRedirectTimer = setTimeout(() => {
 
-        if (authStateResolved && !auth.currentUser) {
+        if (
+          authStateResolved &&
+          !auth.currentUser
+        ) {
 
           console.log(
             'Player page: No user logged in after auth settled, returning to dashboard'
           );
 
-          window.location.replace('dashboard.html');
+          window.location.replace(
+            'dashboard.html'
+          );
+
         }
 
       }, 500);
@@ -281,6 +297,10 @@
     });
 
 
+    /*
+     * Convert ArrayBuffer / TypedArray / Array-like data
+     * to Base64.
+     */
     function bytesToBase64(value) {
 
       let bytes;
@@ -338,7 +358,9 @@
 
     async function serializeSaveState(value) {
 
-      const binaryValue = bytesToBase64(value);
+      const binaryValue =
+        bytesToBase64(value);
+
 
       if (binaryValue !== null) {
         return binaryValue;
@@ -346,9 +368,11 @@
 
 
       if (value instanceof Blob) {
+
         return bytesToBase64(
           await value.arrayBuffer()
         );
+
       }
 
 
@@ -356,27 +380,12 @@
     }
 
 
-    function base64ToBlobUrl(value) {
-
-      return URL.createObjectURL(
-        new Blob(
-          [base64ToBytes(value)],
-          {
-            type: 'application/octet-stream'
-          }
-        )
-      );
-
-    }
-
-
     function base64ToBytes(value) {
 
       const binary = atob(value);
 
-      const bytes = new Uint8Array(
-        binary.length
-      );
+      const bytes =
+        new Uint8Array(binary.length);
 
 
       for (
@@ -397,8 +406,15 @@
 
     const SAVE_CHUNK_SIZE = 700000;
 
-    let pendingSavePromise = Promise.resolve();
+    let pendingSavePromise =
+      Promise.resolve();
 
+
+    /*
+     * ============================================================
+     * LOCAL INDEXEDDB SAVE SYSTEM
+     * ============================================================
+     */
 
     function openLocalSaveDb() {
 
@@ -411,22 +427,36 @@
           );
 
 
-        request.onerror = () =>
+        request.onerror = () => {
           reject(request.error);
+        };
 
 
-        request.onsuccess = () =>
+        request.onsuccess = () => {
           resolve(request.result);
+        };
 
 
         request.onupgradeneeded = () => {
 
-          request.result.createObjectStore(
-            'states',
-            {
-              keyPath: 'gameTitle'
-            }
-          );
+          const database =
+            request.result;
+
+
+          if (
+            !database.objectStoreNames.contains(
+              'states'
+            )
+          ) {
+
+            database.createObjectStore(
+              'states',
+              {
+                keyPath: 'gameTitle'
+              }
+            );
+
+          }
 
         };
 
@@ -467,6 +497,7 @@
           transaction.oncomplete =
             resolve;
 
+
           transaction.onerror =
             () => reject(
               transaction.error
@@ -477,6 +508,7 @@
 
 
       database.close();
+
     }
 
 
@@ -520,19 +552,29 @@
 
       database.close();
 
+
       return result;
+
     }
 
 
     window.saveStateLocally =
       saveStateLocally;
 
+
     window.loadStateLocally =
       loadStateLocally;
+
 
     window.base64ToBytes =
       base64ToBytes;
 
+
+    /*
+     * ============================================================
+     * CLOUD SAVE
+     * ============================================================
+     */
 
     window.syncSaveToCloud =
       async (gameState) => {
@@ -541,7 +583,9 @@
           !window.currentUser ||
           !window.currentGameTitle
         ) {
+
           return;
+
         }
 
 
@@ -566,6 +610,9 @@
           }
 
 
+          /*
+           * Always save locally first.
+           */
           await saveStateLocally(
             window.currentGameTitle,
             serializedState
@@ -644,6 +691,7 @@
             )
           );
 
+
         } catch (err) {
 
           console.warn(
@@ -655,6 +703,12 @@
 
       };
 
+
+    /*
+     * ============================================================
+     * SAVE CURRENT GAME STATE
+     * ============================================================
+     */
 
     window.saveCurrentGameState =
       async () => {
@@ -672,7 +726,9 @@
           !window.currentUser ||
           !window.currentGameTitle
         ) {
+
           return false;
+
         }
 
 
@@ -697,7 +753,9 @@
 
           await pendingSavePromise;
 
+
           return true;
+
 
         } catch (err) {
 
@@ -706,11 +764,19 @@
             err?.message || err
           );
 
+
           return false;
+
         }
 
       };
 
+
+    /*
+     * ============================================================
+     * LOCAL SAVE ONLY
+     * ============================================================
+     */
 
     window.saveCurrentGameStateLocally =
       async () => {
@@ -727,7 +793,9 @@
           !getState ||
           !window.currentGameTitle
         ) {
+
           return null;
+
         }
 
 
@@ -771,6 +839,7 @@
 
           return state;
 
+
         } catch (err) {
 
           console.warn(
@@ -778,11 +847,19 @@
             err?.message || err
           );
 
+
           return null;
+
         }
 
       };
 
+
+    /*
+     * ============================================================
+     * SUPPRESS KNOWN EMULATORJS WARNINGS
+     * ============================================================
+     */
 
     window.suppressKnownEjsWarnings =
       () => {
@@ -807,7 +884,8 @@
 
             if (
               !patterns.some(
-                p => p.test(text)
+                pattern =>
+                  pattern.test(text)
               )
             ) {
 
@@ -825,11 +903,17 @@
   </script>
 
 
+  <!-- ============================================================
+       GAME / EMULATORJS
+       ============================================================ -->
+
   <script>
 
-    // ============================================================
-    // GET GAME PARAMETERS
-    // ============================================================
+    /*
+     * ============================================================
+     * GAME PARAMETERS
+     * ============================================================
+     */
 
     const params =
       new URLSearchParams(
@@ -867,9 +951,11 @@
       gameTitle || 'Game';
 
 
-    // ============================================================
-    // FOCUS GAME
-    // ============================================================
+    /*
+     * ============================================================
+     * FOCUS GAME CANVAS
+     * ============================================================
+     */
 
     function focusGameCanvas() {
 
@@ -890,9 +976,6 @@
       const canvas =
         gameContainer.querySelector(
           'canvas'
-        ) ||
-        gameContainer.querySelector(
-          'iframe'
         );
 
 
@@ -903,9 +986,14 @@
     }
 
 
-    // ============================================================
-    // CLEAR OLD EMULATORJS CONTROL SETTINGS
-    // ============================================================
+    /*
+     * ============================================================
+     * REMOVE OLD EMULATORJS CONTROL CACHE
+     *
+     * This makes sure an old mapping does not override our
+     * predefined keyboard mapping.
+     * ============================================================
+     */
 
     function sanitizeControlCache() {
 
@@ -941,7 +1029,9 @@
 
 
         keysToRemove.forEach(
-          k => localStorage.removeItem(k)
+          key => {
+            localStorage.removeItem(key);
+          }
         );
 
 
@@ -957,9 +1047,20 @@
     }
 
 
-    // ============================================================
-    // CONTROL SCHEME
-    // ============================================================
+    /*
+     * ============================================================
+     * CONTROL SCHEME
+     * ============================================================
+     *
+     * IMPORTANT:
+     *
+     * picodrive is an EmulatorJS Sega 32X core.
+     *
+     * For your Mega Drive / Genesis games we still use the
+     * Sega Mega Drive control layout because that is the layout
+     * we want for the keyboard.
+     * ============================================================
+     */
 
     function getControlScheme(core) {
 
@@ -972,14 +1073,20 @@
         core.toLowerCase();
 
 
+      /*
+       * PicoDrive gets Sega Mega Drive controls.
+       *
+       * This is intentional for your Genesis/Mega Drive ROMs.
+       */
       if (
         c.includes('pico') ||
         c.includes('genesis') ||
         c.includes('megadrive') ||
-        c.includes('md') ||
         c.includes('sega')
       ) {
+
         return 'segaMD';
+
       }
 
 
@@ -987,7 +1094,9 @@
         c.includes('snes') ||
         c.includes('sfc')
       ) {
+
         return 'snes';
+
       }
 
 
@@ -996,7 +1105,9 @@
         c.includes('fceumm') ||
         c.includes('nestopia')
       ) {
+
         return 'nes';
+
       }
 
 
@@ -1004,7 +1115,9 @@
         c.includes('gba') ||
         c.includes('mgba')
       ) {
+
         return 'gba';
+
       }
 
 
@@ -1017,7 +1130,9 @@
         c.includes('n64') ||
         c.includes('mupen')
       ) {
+
         return 'n64';
+
       }
 
 
@@ -1027,7 +1142,9 @@
         c.includes('mame') ||
         c.includes('arcade')
       ) {
+
         return 'arcade';
+
       }
 
 
@@ -1035,7 +1152,9 @@
         c.includes('psx') ||
         c.includes('pcsx')
       ) {
+
         return 'psx';
+
       }
 
 
@@ -1044,9 +1163,11 @@
     }
 
 
-    // ============================================================
-    // ARCHIVE.ORG ROM PROXY
-    // ============================================================
+    /*
+     * ============================================================
+     * ROM URL RESOLVER
+     * ============================================================
+     */
 
     async function resolvePlayableRomUrl(
       romPath
@@ -1063,18 +1184,24 @@
           'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
 
 
-        return `${proxyBaseUrl}/?url=${encodeURIComponent(romPath)}`;
+        return (
+          `${proxyBaseUrl}/?url=` +
+          encodeURIComponent(romPath)
+        );
 
       }
 
 
       return romPath;
+
     }
 
 
-    // ============================================================
-    // START EMULATOR
-    // ============================================================
+    /*
+     * ============================================================
+     * BOOT EMULATOR
+     * ============================================================
+     */
 
     async function bootEmulator() {
 
@@ -1088,18 +1215,27 @@
         );
 
         return;
+
       }
 
 
       try {
 
+        /*
+         * Wait for Firebase authentication.
+         */
         await window.authStateReady;
 
 
-        // Clear old control mappings.
+        /*
+         * Clear old EmulatorJS control settings.
+         */
         sanitizeControlCache();
 
 
+        /*
+         * Prepare game container.
+         */
         const gameDiv =
           document.getElementById(
             'game'
@@ -1109,15 +1245,20 @@
         gameDiv.innerHTML = '';
 
 
+        /*
+         * Resolve ROM.
+         */
         const playableUrl =
           await resolvePlayableRomUrl(
             gameRomUrl
           );
 
 
-        // ========================================================
-        // EMULATORJS GLOBAL CONFIGURATION
-        // ========================================================
+        /*
+         * ========================================================
+         * EMULATORJS GLOBAL CONFIGURATION
+         * ========================================================
+         */
 
         window.EJS_player =
           '#game';
@@ -1151,9 +1292,11 @@
           false;
 
 
-        // ========================================================
-        // CONTROL SCHEME
-        // ========================================================
+        /*
+         * ========================================================
+         * CONTROL SCHEME
+         * ========================================================
+         */
 
         window.EJS_controlScheme =
           getControlScheme(
@@ -1161,17 +1304,19 @@
           );
 
 
-        // ========================================================
-        // SEGA 6-BUTTON CONTROLLER
-        // ========================================================
+        /*
+         * ========================================================
+         * SEGA 6-BUTTON CONTROLLER
+         * ========================================================
+         */
 
         if (
           gameCore &&
           (
-            gameCore.includes('pico') ||
-            gameCore.includes('genesis') ||
-            gameCore.includes('megadrive') ||
-            gameCore.includes('sega')
+            gameCore.toLowerCase().includes('pico') ||
+            gameCore.toLowerCase().includes('genesis') ||
+            gameCore.toLowerCase().includes('megadrive') ||
+            gameCore.toLowerCase().includes('sega')
           )
         ) {
 
@@ -1188,116 +1333,185 @@
         }
 
 
-        // ========================================================
-        // PRE-MAPPED KEYBOARD CONTROLS
-        //
-        // IMPORTANT:
-        // EmulatorJS expects:
-        //
-        // EJS_defaultControls
-        //   -> player
-        //      -> button
-        //
-        // Player 1 = 0
-        //
-        // Keyboard layout:
-        //
-        // Z      = A
-        // X      = B
-        // A      = X
-        // S      = Y
-        // C      = L
-        // D      = R
-        // Shift  = Select
-        // Enter  = Start
-        // Arrows = D-Pad
-        // ========================================================
+        /*
+         * ========================================================
+         * PRE-MAPPED KEYBOARD CONTROLS
+         * ========================================================
+         *
+         * EmulatorJS documentation:
+         *
+         * Player 1 = 0
+         * Player 2 = 1
+         * Player 3 = 2
+         * Player 4 = 3
+         *
+         * Button indexes:
+         *
+         * 0  = B
+         * 1  = Y
+         * 2  = SELECT
+         * 3  = START
+         * 4  = UP
+         * 5  = DOWN
+         * 6  = LEFT
+         * 7  = RIGHT
+         * 8  = A
+         * 9  = X
+         * 10 = L
+         * 11 = R
+         *
+         * Keyboard:
+         *
+         * B      = X
+         * Y      = S
+         * SELECT = Shift
+         * START  = Enter
+         * UP     = Up Arrow
+         * DOWN   = Down Arrow
+         * LEFT   = Left Arrow
+         * RIGHT  = Right Arrow
+         * A      = Z
+         * X      = A
+         * L      = C
+         * R      = D
+         *
+         * The additional empty player objects are intentional.
+         * They prevent EmulatorJS from trying to access an
+         * undefined player mapping.
+         * ========================================================
+         */
 
         window.EJS_defaultControls = {
 
-          // PLAYER 1
+          /*
+           * PLAYER 1
+           */
           0: {
 
-            // B
+            /*
+             * B
+             */
             0: {
               value: 'x',
               value2: 'BUTTON_2'
             },
 
-            // Y
+            /*
+             * Y
+             */
             1: {
               value: 's',
               value2: 'BUTTON_4'
             },
 
-            // Select
+            /*
+             * SELECT
+             */
             2: {
               value: 'shift',
               value2: 'SELECT'
             },
 
-            // Start
+            /*
+             * START
+             */
             3: {
               value: 'enter',
               value2: 'START'
             },
 
-            // D-Pad Up
+            /*
+             * UP
+             */
             4: {
               value: 'up arrow',
               value2: 'DPAD_UP'
             },
 
-            // D-Pad Down
+            /*
+             * DOWN
+             */
             5: {
               value: 'down arrow',
               value2: 'DPAD_DOWN'
             },
 
-            // D-Pad Left
+            /*
+             * LEFT
+             */
             6: {
               value: 'left arrow',
               value2: 'DPAD_LEFT'
             },
 
-            // D-Pad Right
+            /*
+             * RIGHT
+             */
             7: {
               value: 'right arrow',
               value2: 'DPAD_RIGHT'
             },
 
-            // A
+            /*
+             * A
+             */
             8: {
               value: 'z',
               value2: 'BUTTON_1'
             },
 
-            // X
+            /*
+             * X
+             */
             9: {
               value: 'a',
               value2: 'BUTTON_3'
             },
 
-            // L
+            /*
+             * L
+             */
             10: {
               value: 'c',
               value2: 'BUTTON_5'
             },
 
-            // R
+            /*
+             * R
+             */
             11: {
               value: 'd',
               value2: 'BUTTON_6'
             }
 
-          }
+          },
+
+
+          /*
+           * PLAYER 2
+           */
+          1: {},
+
+
+          /*
+           * PLAYER 3
+           */
+          2: {},
+
+
+          /*
+           * PLAYER 4
+           */
+          3: {}
 
         };
 
 
-        // ========================================================
-        // FBNEO / FBA BIOS
-        // ========================================================
+        /*
+         * ========================================================
+         * FBNEO / FBA BIOS
+         * ========================================================
+         */
 
         if (
           gameCore === 'fbneo' ||
@@ -1318,9 +1532,11 @@
         }
 
 
-        // ========================================================
-        // SAVE STATE CALLBACK
-        // ========================================================
+        /*
+         * ========================================================
+         * SAVE STATE CALLBACK
+         * ========================================================
+         */
 
         window.EJS_onSaveState =
           (data) => {
@@ -1344,6 +1560,12 @@
           };
 
 
+        /*
+         * ========================================================
+         * LOAD STATE CALLBACK
+         * ========================================================
+         */
+
         window.EJS_onLoadState =
           () => {
 
@@ -1354,16 +1576,30 @@
           };
 
 
-        // ========================================================
-        // GAME START
-        // ========================================================
+        /*
+         * ========================================================
+         * GAME START CALLBACK
+         * ========================================================
+         */
 
         window.EJS_onGameStart =
           () => {
 
+            console.log(
+              'EmulatorJS game started'
+            );
+
+
+            /*
+             * Focus the emulator.
+             */
             focusGameCanvas();
 
 
+            /*
+             * Keep focusing for a few seconds while
+             * EmulatorJS finishes building its canvas.
+             */
             let attempts = 0;
 
 
@@ -1391,34 +1627,51 @@
               );
 
 
+            /*
+             * Apply saved state.
+             */
             if (
               window.__pendingSavedStateBytes &&
               window.EJS_emulator?.gameManager
             ) {
 
-              window.EJS_emulator
-                .gameManager
-                .loadState(
-                  window.__pendingSavedStateBytes
+              try {
+
+                window.EJS_emulator
+                  .gameManager
+                  .loadState(
+                    window.__pendingSavedStateBytes
+                  );
+
+
+                window.__pendingSavedStateBytes =
+                  null;
+
+
+                console.log(
+                  'Applied saved game state to emulator'
                 );
 
 
-              window.__pendingSavedStateBytes =
-                null;
+              } catch (err) {
 
+                console.warn(
+                  'Could not apply saved game state:',
+                  err?.message || err
+                );
 
-              console.log(
-                'Applied saved game state to emulator'
-              );
+              }
 
             }
 
           };
 
 
-        // ========================================================
-        // LOAD SAVED GAME STATE
-        // ========================================================
+        /*
+         * ========================================================
+         * LOAD SAVED GAME STATE
+         * ========================================================
+         */
 
         if (
           window.currentUser &&
@@ -1431,6 +1684,9 @@
             let savedState = null;
 
 
+            /*
+             * Check IndexedDB first.
+             */
             try {
 
               savedState =
@@ -1456,6 +1712,9 @@
             };
 
 
+            /*
+             * Local save exists.
+             */
             if (savedState) {
 
               console.log(
@@ -1463,6 +1722,12 @@
               );
 
             } else {
+
+              /*
+               * ==================================================
+               * CHECK FIRESTORE
+               * ==================================================
+               */
 
               console.log(
                 'No local save found; checking Firestore'
@@ -1485,17 +1750,24 @@
                 );
 
 
+              /*
+               * Backward-compatible fallback location.
+               *
+               * Fixed from the original code:
+               *
+               * doc(doc(...))
+               *
+               * was invalid.
+               */
               if (!saveSnap.exists()) {
 
                 saveRef =
                   window.firestoreDoc(
-                    window.firestoreDoc(
-                      window.firebaseDb,
-                      'users',
-                      window.currentUser.uid,
-                      'saves',
-                      window.currentGameTitle
-                    )
+                    window.firebaseDb,
+                    'users',
+                    window.currentUser.uid,
+                    'saves',
+                    window.currentGameTitle
                   );
 
 
@@ -1517,6 +1789,9 @@
                   saveData.state;
 
 
+                /*
+                 * Reconstruct chunked save.
+                 */
                 if (
                   saveData.stateFormat ===
                     'chunked-text-v1' &&
@@ -1532,13 +1807,17 @@
                     index++
                   ) {
 
+                    const chunkRef =
+                      window.firestoreDoc(
+                        saveRef,
+                        'chunks',
+                        String(index)
+                      );
+
+
                     const chunkSnap =
                       await window.firestoreGetDoc(
-                        window.firestoreDoc(
-                          saveRef,
-                          'chunks',
-                          String(index)
-                        )
+                        chunkRef
                       );
 
 
@@ -1554,15 +1833,17 @@
 
 
                     savedState +=
-                      chunkSnap
-                        .data()
-                        .data || '';
+                      chunkSnap.data().data ||
+                      '';
 
                   }
 
                 }
 
 
+                /*
+                 * Cache Firestore save locally.
+                 */
                 if (savedState) {
 
                   await window.saveStateLocally(
@@ -1588,6 +1869,9 @@
             }
 
 
+            /*
+             * Prepare saved state for EmulatorJS.
+             */
             if (savedState) {
 
               if (
@@ -1617,7 +1901,7 @@
             } else {
 
               console.log(
-                'Firestore document exists but contains no state data'
+                'No saved game state available'
               );
 
             }
@@ -1635,9 +1919,11 @@
         }
 
 
-        // ========================================================
-        // LOAD EMULATORJS
-        // ========================================================
+        /*
+         * ========================================================
+         * LOAD EMULATORJS LOADER
+         * ========================================================
+         */
 
         const script =
           document.createElement(
@@ -1660,6 +1946,10 @@
             );
 
 
+            /*
+             * Hide loading screen after EmulatorJS
+             * has had time to initialize.
+             */
             setTimeout(
               () => {
 
@@ -1670,8 +1960,10 @@
 
 
                 if (loading) {
+
                   loading.style.display =
                     'none';
+
                 }
 
 
@@ -1685,7 +1977,18 @@
             setupAutosave();
 
 
-            window.suppressKnownEjsWarnings();
+            /*
+             * This function is created by the Firebase
+             * module script above.
+             */
+            if (
+              typeof window.suppressKnownEjsWarnings ===
+              'function'
+            ) {
+
+              window.suppressKnownEjsWarnings();
+
+            }
 
           };
 
@@ -1717,9 +2020,11 @@
     }
 
 
-    // ============================================================
-    // AUTOSAVE
-    // ============================================================
+    /*
+     * ============================================================
+     * AUTOSAVE
+     * ============================================================
+     */
 
     function setupAutosave() {
 
@@ -1773,6 +2078,7 @@
 
               }
 
+
             } catch (err) {
 
               console.warn(
@@ -1789,9 +2095,11 @@
     }
 
 
-    // ============================================================
-    // ERROR DISPLAY
-    // ============================================================
+    /*
+     * ============================================================
+     * ERROR
+     * ============================================================
+     */
 
     function showError(msg) {
 
@@ -1809,17 +2117,27 @@
         'block';
 
 
-      document.getElementById(
-        'loading-indicator'
-      ).style.display =
-        'none';
+      const loading =
+        document.getElementById(
+          'loading-indicator'
+        );
+
+
+      if (loading) {
+
+        loading.style.display =
+          'none';
+
+      }
 
     }
 
 
-    // ============================================================
-    // SAVE & EXIT
-    // ============================================================
+    /*
+     * ============================================================
+     * SAVE & EXIT
+     * ============================================================
+     */
 
     async function closeGame() {
 
@@ -1841,6 +2159,9 @@
       }
 
 
+      /*
+       * Stop autosave.
+       */
       if (
         window.currentAutoSaveInterval
       ) {
@@ -1852,10 +2173,16 @@
       }
 
 
+      /*
+       * Save locally.
+       */
       const state =
         await window.saveCurrentGameStateLocally();
 
 
+      /*
+       * Save to cloud and WAIT for it.
+       */
       if (
         state != null &&
         window.currentUser
@@ -1866,15 +2193,15 @@
             state
           );
 
-        // IMPORTANT:
-        // Wait for the cloud save to finish
-        // before leaving the page.
 
         await pendingSavePromise;
 
       }
 
 
+      /*
+       * Destroy EmulatorJS.
+       */
       if (
         window.EJS_emulator &&
         typeof window.EJS_emulator.destroy ===
@@ -1897,6 +2224,9 @@
       }
 
 
+      /*
+       * Return to dashboard.
+       */
       window.location.assign(
         'dashboard.html'
       );
@@ -1908,9 +2238,11 @@
       closeGame;
 
 
-    // ============================================================
-    // FOCUS EMULATOR WHEN CLICKED
-    // ============================================================
+    /*
+     * ============================================================
+     * FOCUS EMULATOR WHEN CLICKED
+     * ============================================================
+     */
 
     document
       .getElementById('game')
@@ -1920,9 +2252,11 @@
       );
 
 
-    // ============================================================
-    // START
-    // ============================================================
+    /*
+     * ============================================================
+     * START
+     * ============================================================
+     */
 
     if (
       document.readyState ===
