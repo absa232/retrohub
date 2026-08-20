@@ -458,7 +458,7 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // Preconfigured controls map: A, B, X, Y + Start, Select & Arrow Keys
+        // Default Controls Object Mapping
         window.EJS_defaultControls = {
           0: { value: 'x', value2: '' },         // Button B -> Keyboard X
           1: { value: 's', value2: '' },         // Button Y -> Keyboard S
@@ -470,8 +470,8 @@
           7: { value: 'arrowright', value2: '' },// Right -> Right Arrow
           8: { value: 'z', value2: '' },         // Button A -> Keyboard Z
           9: { value: 'a', value2: '' },         // Button X -> Keyboard A
-          10: { value: '', value2: '' },         // Button C / L -> Unmapped
-          11: { value: '', value2: '' }          // Button Z / R -> Unmapped
+          10: { value: 'c', value2: '' },        // Button L / C -> Keyboard C
+          11: { value: 'd', value2: '' }         // Button R / Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
@@ -493,6 +493,14 @@
 
         window.EJS_onGameStart = () => {
           focusGameCanvas();
+
+          // Sync controls at runtime into live EmulatorJS settings
+          if (window.EJS_emulator) {
+            if (window.EJS_emulator.keys) {
+              window.EJS_emulator.settings = window.EJS_emulator.settings || {};
+              window.EJS_emulator.settings.controls = window.EJS_emulator.keys;
+            }
+          }
 
           let attempts = 0;
           const focusInterval = setInterval(() => {
@@ -653,6 +661,14 @@
 
     // Focus emulator canvas on click
     document.getElementById('game').addEventListener('click', focusGameCanvas);
+
+    // Global Keydown Router ensuring canvas focus on keypress
+    window.addEventListener('keydown', (e) => {
+      const canvas = document.querySelector('#game canvas');
+      if (canvas && document.activeElement !== canvas) {
+        canvas.focus();
+      }
+    }, true);
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', bootEmulator);
