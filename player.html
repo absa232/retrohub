@@ -405,22 +405,6 @@
       }
     }
 
-    function getControlScheme(core) {
-      if (!core) return 'snes';
-      const c = core.toLowerCase();
-      if (c.includes('pico') || c.includes('genesis') || c.includes('megadrive') || c.includes('md') || c.includes('sega')) return 'segaMD';
-      if (c.includes('snes') || c.includes('sfc')) return 'snes';
-      if (c.includes('nes') || c.includes('fceumm') || c.includes('nestopia')) return 'nes';
-      if (c.includes('gba') || c.includes('mgba')) return 'gba';
-      if (c.includes('gb')) return 'gb';
-      if (c.includes('n64') || c.includes('mupen')) return 'n64';
-      if (c.includes('fbneo') || c.includes('fba') || c.includes('mame') || c.includes('arcade')) return 'arcade';
-      if (c.includes('psx') || c.includes('pcsx')) return 'psx';
-      if (c.includes('gg') || c.includes('gear')) return 'segaGG';
-      if (c.includes('sms') || c.includes('master')) return 'segaMS';
-      return 'snes';
-    }
-
     // Clears any stale control entries from localStorage
     function sanitizeControlCache() {
       try {
@@ -474,10 +458,7 @@
         window.EJS_startOnLoaded = true;
         window.EJS_hideMenubar = false;
 
-        // System Control Scheme
-        window.EJS_controlScheme = getControlScheme(gameCore);
-
-        // Force 6-button controller pad in core options for Mega Drive / Genesis
+        // Force 6-button pad in core options for Sega Mega Drive / Genesis
         if (gameCore.includes('pico') || gameCore.includes('genesis') || gameCore.includes('megadrive') || gameCore.includes('sega')) {
           window.EJS_coreOptions = {
             'picodrive_input1': '6 button pad',
@@ -485,20 +466,20 @@
           };
         }
 
-        // Global default controls mapping
+        // Global default controls mapping for all consoles
         window.EJS_defaultControls = {
-          0: { value: 'x', value2: '' },         // B -> X
-          1: { value: 's', value2: '' },         // Y -> S
-          2: { value: 'shift', value2: '' },     // Select / Mode -> Shift
-          3: { value: 'enter', value2: '' },     // Start -> Enter
-          4: { value: 'arrowup', value2: '' },   // Up -> Up Arrow
-          5: { value: 'arrowdown', value2: '' }, // Down -> Down Arrow
-          6: { value: 'arrowleft', value2: '' }, // Left -> Left Arrow
-          7: { value: 'arrowright', value2: '' },// Right -> Right Arrow
-          8: { value: 'z', value2: '' },         // A -> Z
-          9: { value: 'a', value2: '' },         // X -> A
-          10: { value: 'c', value2: '' },        // L / C -> C
-          11: { value: 'd', value2: '' }         // R / Z -> D
+          0: 'x',         // Button B -> Keyboard X
+          1: 's',         // Button Y -> Keyboard S
+          2: 'shift',     // Select / Mode -> Keyboard Shift
+          3: 'enter',     // Start -> Keyboard Enter
+          4: 'arrowup',   // Up -> Up Arrow
+          5: 'arrowdown', // Down -> Down Arrow
+          6: 'arrowleft', // Left -> Left Arrow
+          7: 'arrowright',// Right -> Right Arrow
+          8: 'z',         // Button A -> Keyboard Z
+          9: 'a',         // Button X -> Keyboard A
+          10: 'c',        // Button L / C -> Keyboard C
+          11: 'd'         // Button R / Z -> Keyboard D
         };
 
         if (gameCore === 'fbneo' || gameCore === 'fba') {
