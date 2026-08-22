@@ -367,6 +367,13 @@
       letter-spacing: 0.04em;
     }
 
+    #controls-modal .guide-category-desc {
+      margin-bottom: 8px;
+      color: #a7a9be;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
     #controls-modal .controls-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -1408,40 +1415,40 @@
             title: 'Super Nintendo (SNES)',
             tag: '16-Bit Console',
             sections: [
-              ['🎯 Movement Controls', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
-              ['⏯️ Selection Controls', 'Start Game / Pause', 'Enter', 'Select', 'Shift'],
-              ['⚡ Action Buttons (ABXY)', 'Button A (Primary Action)', 'Z', 'Button B (Jump / Secondary)', 'X', 'Button X (Special Skill)', 'A', 'Button Y (Run / Dash)', 'S'],
-              ['🛡️ Shoulder Controls (L & R)', 'L Shoulder (Shield / Guard)', 'C', 'R Shoulder (Dash / Special)', 'D']
+              ['🎯 Movement Controls', 'Used for character movement, directional aiming, and menu navigation.', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Used for starting games, pausing, opening options, and confirming choices.', 'Start Game / Pause', 'Enter', 'Select', 'Shift'],
+              ['⚡ Action Buttons (ABXY)', 'Used for primary interactions like jumping, attacking, running, and special abilities.', 'Button A (Primary Action)', 'Z', 'Button B (Jump / Secondary)', 'X', 'Button X (Special Skill)', 'A', 'Button Y (Run / Dash)', 'S'],
+              ['🛡️ Shoulder Controls (L & R)', 'Used for shielding/guarding, dash boosts, target lock-on, and camera orientation.', 'L Shoulder (Shield / Guard)', 'C', 'R Shoulder (Dash / Special)', 'D']
             ]
           },
           megadrive: {
             title: 'Sega Mega Drive / Genesis',
             tag: '16-Bit Console',
             sections: [
-              ['🎯 Movement Controls', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
-              ['⏯️ Selection Controls', 'Start Game / Pause', 'Enter', 'Mode / Select', 'Shift'],
-              ['⚡ Action Buttons', 'Button A (Primary Action)', 'Z', 'Button B (Jump / Secondary)', 'X', 'Button X (Upper Action)', 'A', 'Button Y (Upper Action)', 'S'],
-              ['🛡️ Extra Action / Shoulder Buttons (C & Z)', 'Button C (Heavy Attack)', 'C', 'Button Z (Special Attack)', 'D']
+              ['🎯 Movement Controls', 'Used for character movement, directional aiming, and menu navigation.', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Used for starting games, pausing, opening options, and confirming choices.', 'Start Game / Pause', 'Enter', 'Mode / Select', 'Shift'],
+              ['⚡ Action Buttons', 'Used for primary interactions like jumping, attacking, running, and special abilities.', 'Button A (Primary Action)', 'Z', 'Button B (Jump / Secondary)', 'X', 'Button X (Upper Action)', 'A', 'Button Y (Upper Action)', 'S'],
+              ['🛡️ Extra Action / Shoulder Buttons (C & Z)', 'Used for heavy attacks, special moves, and dash boosts in 6-Button Fighting/Action games.', 'Button C (Heavy Attack)', 'C', 'Button Z (Special Attack)', 'D']
             ]
           },
           gba: {
             title: 'Game Boy Advance (GBA)',
             tag: 'Handheld Console',
             sections: [
-              ['🎯 Movement Controls', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
-              ['⏯️ Selection Controls', 'Start Game / Pause', 'Enter', 'Select', 'Shift'],
-              ['⚡ Action Buttons', 'Button A', 'Z', 'Button B', 'X'],
-              ['🛡️ Shoulder Controls (L & R)', 'L Bumper', 'C', 'R Bumper', 'D']
+              ['🎯 Movement Controls', 'Used for character movement, directional aiming, and menu navigation.', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Used for starting games, pausing, opening options, and confirming choices.', 'Start Game / Pause', 'Enter', 'Select', 'Shift'],
+              ['⚡ Action Buttons', 'Used for primary interactions like jumping, attacking, running, and interacting.', 'Button A', 'Z', 'Button B', 'X'],
+              ['🛡️ Shoulder Controls (L & R)', 'Used for switching items, target lock-on, running/sprinting, and menu tabs.', 'L Bumper', 'C', 'R Bumper', 'D']
             ]
           },
           arcade: {
             title: 'Arcade Systems (FBNeo / NeoGeo)',
             tag: 'Coin-Op Machine',
             sections: [
-              ['🎯 Movement Controls', '8-Way Joystick', '↑ ↓ ← →'],
-              ['⏯️ Selection Controls', 'Player 1 Start', 'Enter', 'Insert Coin', 'Shift'],
-              ['⚡ Action Buttons', 'Button 1 (Light Attack)', 'Z', 'Button 2 (Medium Attack)', 'X'],
-              ['🛡️ Secondary Action Buttons', 'Button 3 (Heavy Attack)', 'C', 'Button 4 (Special / Taunt)', 'D']
+              ['🎯 Movement Controls', 'Used for joystick direction, crouching, jumping, and 8-way movement.', '8-Way Joystick', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Used for starting Player 1 gameplay and inserting arcade machine coins.', 'Player 1 Start', 'Enter', 'Insert Coin', 'Shift'],
+              ['⚡ Action Buttons', 'Used for punches, kicks, shoots, and light/medium fighting attacks.', 'Button 1 (Light Attack)', 'Z', 'Button 2 (Medium Attack)', 'X'],
+              ['🛡️ Secondary Action Buttons', 'Used for heavy attacks, special moves, and multi-button combo triggers.', 'Button 3 (Heavy Attack)', 'C', 'Button 4 (Special / Taunt)', 'D']
             ]
           }
         };
@@ -1449,10 +1456,10 @@
         const panels = Object.entries(controlTabs).map(([id, tab]) => {
           const blocks = tab.sections.map((section) => {
             const entries = [];
-            for (let i = 1; i < section.length; i += 2) {
+            for (let i = 2; i < section.length; i += 2) {
               entries.push(`<div class="control-item"><span class="label">${section[i]}</span><div class="keys"><kbd>${section[i + 1] || ''}</kbd></div></div>`);
             }
-            return `<div class="category-block"><h4 class="guide-category-title">${section[0]}</h4><div class="controls-grid">${entries.join('')}</div></div>`;
+            return `<div class="category-block"><h4 class="guide-category-title">${section[0]}</h4><p class="guide-category-desc">${section[1]}</p><div class="controls-grid">${entries.join('')}</div></div>`;
           }).join('');
           return `<div id="tab-${id}" class="control-panel${id === 'snes' ? ' active' : ''}"><div class="panel-header"><h3>${tab.title}</h3><span class="system-tag">${tab.tag}</span></div>${blocks}</div>`;
         }).join('');
