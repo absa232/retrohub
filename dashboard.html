@@ -195,6 +195,225 @@
       transform: translateY(-2px);
     }
 
+    #controls-modal,
+    #controls-modal * {
+      font-family: 'Poppins', sans-serif;
+    }
+
+    #controls-modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 12px;
+      background: rgba(15, 14, 23, 0.85);
+      backdrop-filter: blur(12px);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 9999;
+    }
+
+    #controls-modal.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    #controls-modal .controls-modal-card {
+      width: 100%;
+      max-width: 680px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #1f1e2e;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 18px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      transform: scale(0.94) translateY(12px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #controls-modal.open .controls-modal-card {
+      transform: scale(1) translateY(0);
+    }
+
+    #controls-modal .modal-header,
+    #controls-modal .modal-footer {
+      flex-shrink: 0;
+      background: rgba(15, 14, 23, 0.6);
+    }
+
+    #controls-modal .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    #controls-modal .modal-title-group h2,
+    #controls-modal .panel-header h3 {
+      color: #fffffe;
+      font-weight: 700;
+    }
+
+    #controls-modal .modal-title-group h2 {
+      font-size: 18px;
+    }
+
+    #controls-modal .modal-badge {
+      display: inline-block;
+      margin-bottom: 3px;
+      padding: 2px 7px;
+      background: #ff8ba7;
+      color: #111;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    #controls-modal .modal-close-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.06);
+      border: none;
+      border-radius: 50%;
+      color: #a7a9be;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    #controls-modal .modal-tabs {
+      display: flex;
+      flex-shrink: 0;
+      gap: 8px;
+      padding: 10px 24px;
+      overflow-x: auto;
+      background: rgba(15, 14, 23, 0.3);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    #controls-modal .tab-btn {
+      padding: 6px 16px;
+      background: transparent;
+      border: none;
+      border-radius: 999px;
+      color: #a7a9be;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    #controls-modal .tab-btn.active {
+      background: #ff8ba7;
+      color: #111;
+    }
+
+    #controls-modal .modal-body {
+      flex: 1;
+      min-height: 0;
+      padding: 16px 24px;
+      overflow-y: auto;
+    }
+
+    #controls-modal .control-panel {
+      display: none;
+    }
+
+    #controls-modal .control-panel.active {
+      display: block;
+    }
+
+    #controls-modal .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    #controls-modal .panel-header h3 {
+      font-size: 15px;
+    }
+
+    #controls-modal .system-tag {
+      padding: 3px 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      color: #a7a9be;
+      font-size: 11px;
+    }
+
+    #controls-modal .category-block {
+      margin-bottom: 16px;
+    }
+
+    #controls-modal .guide-category-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+      color: #ff8ba7;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    #controls-modal .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 8px;
+    }
+
+    #controls-modal .control-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 14px;
+      background: rgba(15, 14, 23, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+    }
+
+    #controls-modal .control-item .label {
+      color: #a7a9be;
+      font-size: 13px;
+    }
+
+    #controls-modal .keys {
+      display: flex;
+      gap: 4px;
+    }
+
+    #controls-modal kbd {
+      min-width: 22px;
+      padding: 3px 8px;
+      background: linear-gradient(180deg, #2e2d42 0%, #171625 100%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-bottom: 3px solid rgba(0, 0, 0, 0.6);
+      border-radius: 5px;
+      color: #fffffe;
+      font-size: 12px;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    #controls-modal .modal-footer {
+      padding: 12px 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      color: #a7a9be;
+      font-size: 12px;
+      text-align: center;
+    }
+
     /* Categories */
     .category-section {
       margin-bottom: 50px;
@@ -1182,15 +1401,67 @@
 
     let controlsModalLoaded = false;
 
-    async function openControlsModal() {
+    function openControlsModal() {
       if (!controlsModalLoaded) {
-        const response = await fetch('controls_guide_button.html');
-        if (!response.ok) throw new Error('Failed to load controls guide');
+        const controlTabs = {
+          snes: {
+            title: 'Super Nintendo (SNES)',
+            tag: '16-Bit Console',
+            sections: [
+              ['🎯 Movement Controls', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Start Game / Pause', 'Enter', 'Select', 'Shift'],
+              ['⚡ Action Buttons (ABXY)', 'Button A (Primary Action)', 'Z', 'Button B (Jump / Secondary)', 'X', 'Button X (Special Skill)', 'A', 'Button Y (Run / Dash)', 'S'],
+              ['🛡️ Shoulder Controls (L & R)', 'L Shoulder (Shield / Guard)', 'C', 'R Shoulder (Dash / Special)', 'D']
+            ]
+          },
+          megadrive: {
+            title: 'Sega Mega Drive / Genesis',
+            tag: '16-Bit Console',
+            sections: [
+              ['🎯 Movement Controls', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Start Game / Pause', 'Enter', 'Mode / Select', 'Shift'],
+              ['⚡ Action Buttons', 'Button A (Primary Action)', 'Z', 'Button B (Jump / Secondary)', 'X', 'Button X (Upper Action)', 'A', 'Button Y (Upper Action)', 'S'],
+              ['🛡️ Extra Action / Shoulder Buttons (C & Z)', 'Button C (Heavy Attack)', 'C', 'Button Z (Special Attack)', 'D']
+            ]
+          },
+          gba: {
+            title: 'Game Boy Advance (GBA)',
+            tag: 'Handheld Console',
+            sections: [
+              ['🎯 Movement Controls', 'D-Pad (Up, Down, Left, Right)', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Start Game / Pause', 'Enter', 'Select', 'Shift'],
+              ['⚡ Action Buttons', 'Button A', 'Z', 'Button B', 'X'],
+              ['🛡️ Shoulder Controls (L & R)', 'L Bumper', 'C', 'R Bumper', 'D']
+            ]
+          },
+          arcade: {
+            title: 'Arcade Systems (FBNeo / NeoGeo)',
+            tag: 'Coin-Op Machine',
+            sections: [
+              ['🎯 Movement Controls', '8-Way Joystick', '↑ ↓ ← →'],
+              ['⏯️ Selection Controls', 'Player 1 Start', 'Enter', 'Insert Coin', 'Shift'],
+              ['⚡ Action Buttons', 'Button 1 (Light Attack)', 'Z', 'Button 2 (Medium Attack)', 'X'],
+              ['🛡️ Secondary Action Buttons', 'Button 3 (Heavy Attack)', 'C', 'Button 4 (Special / Taunt)', 'D']
+            ]
+          }
+        };
 
-        const component = new DOMParser().parseFromString(await response.text(), 'text/html');
-        component.querySelectorAll('style').forEach((style) => document.head.appendChild(style));
-        const modal = component.querySelector('#controls-modal');
-        if (!modal) throw new Error('Controls modal markup not found');
+        const panels = Object.entries(controlTabs).map(([id, tab]) => {
+          const blocks = tab.sections.map((section) => {
+            const entries = [];
+            for (let i = 1; i < section.length; i += 2) {
+              entries.push(`<div class="control-item"><span class="label">${section[i]}</span><div class="keys"><kbd>${section[i + 1] || ''}</kbd></div></div>`);
+            }
+            return `<div class="category-block"><h4 class="guide-category-title">${section[0]}</h4><div class="controls-grid">${entries.join('')}</div></div>`;
+          }).join('');
+          return `<div id="tab-${id}" class="control-panel${id === 'snes' ? ' active' : ''}"><div class="panel-header"><h3>${tab.title}</h3><span class="system-tag">${tab.tag}</span></div>${blocks}</div>`;
+        }).join('');
+
+        const modal = document.createElement('div');
+        modal.id = 'controls-modal';
+        modal.className = 'controls-modal-overlay';
+        modal.onclick = handleBackdropClick;
+        modal.innerHTML = `<div class="controls-modal-card"><div class="modal-header"><div class="modal-title-group"><span class="modal-badge">RETROHUB GUIDE</span><h2>Game Controls & Mappings</h2></div><button class="modal-close-btn" onclick="closeControlsModal()" aria-label="Close Modal">&times;</button></div><div class="modal-tabs"><button class="tab-btn active" onclick="switchControlTab('snes', event)">SNES</button><button class="tab-btn" onclick="switchControlTab('megadrive', event)">Sega MD</button><button class="tab-btn" onclick="switchControlTab('gba', event)">GBA</button><button class="tab-btn" onclick="switchControlTab('arcade', event)">Arcade</button></div><div class="modal-body">${panels}</div><div class="modal-footer"><p>💡 Tip: Click anywhere inside the game area to focus your keyboard controls.</p></div></div>`;
         document.body.appendChild(modal);
         controlsModalLoaded = true;
       }
@@ -1206,9 +1477,9 @@
       if (event.target.id === 'controls-modal') closeControlsModal();
     }
 
-    function switchControlTab(systemId) {
+    function switchControlTab(systemId, event) {
       document.querySelectorAll('.modal-tabs .tab-btn').forEach((button) => button.classList.remove('active'));
-      window.event?.currentTarget?.classList.add('active');
+      event?.currentTarget?.classList.add('active');
       document.querySelectorAll('.modal-body .control-panel').forEach((panel) => panel.classList.remove('active'));
       document.getElementById(`tab-${systemId}`)?.classList.add('active');
     }
