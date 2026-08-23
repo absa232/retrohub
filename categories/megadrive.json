@@ -1,8 +1,8 @@
 {
   "id": "retrohub-roms-megadrive_202608",
   "system": "megadrive",
-  "core": "segaMD",
-  "name": "SEGA MEGADRIVE",
+  "core": "genesis_plus_gx",
+  "name": "SEGA MEGADRIVE / GENESIS",
   "emoji": "🎮",
   "thumbnailSystem": "Sega - Mega Drive - Genesis",
   "games": [

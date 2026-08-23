@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='Noto Color Emoji'>🎮</text></svg>">
   <title>Playing Game</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
 
   <style>
     :root {
@@ -19,10 +25,11 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      font-family: 'Poppins';
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Poppins';
       background: linear-gradient(
         135deg,
         #2a0845 0%,
@@ -1183,8 +1190,14 @@
           'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
 
 
+        const romFileName =
+          decodeURIComponent(
+            new URL(romPath).pathname.split('/').pop()
+          );
+
+
         return (
-          `${proxyBaseUrl}/?url=` +
+          `${proxyBaseUrl}/${encodeURIComponent(romFileName)}?url=` +
           encodeURIComponent(romPath)
         );
 
@@ -1508,31 +1521,6 @@
 
         /*
          * ========================================================
-         * FBNEO / FBA BIOS
-         * ========================================================
-         */
-
-        if (
-          gameCore === 'fbneo' ||
-          gameCore === 'fba'
-        ) {
-
-          const proxyBaseUrl =
-            'https://patient-cloud-c9bc.retrohub-proxy.workers.dev';
-
-
-          const biosUrl =
-            'https://archive.org/download/neo-geo-bios/neogeo.zip';
-
-
-          window.EJS_biosUrl =
-            `${proxyBaseUrl}/?url=${encodeURIComponent(biosUrl)}`;
-
-        }
-
-
-        /*
-         * ========================================================
          * SAVE STATE CALLBACK
          * ========================================================
          */
@@ -1581,6 +1569,89 @@
          * ========================================================
          */
 
+        function applyPendingSavedState() {
+
+          if (
+            !window.__pendingSavedStateBytes
+          ) {
+
+            return;
+
+          }
+
+
+          let attempts = 0;
+
+
+          const applyInterval =
+            setInterval(
+              () => {
+
+                const gameManager =
+                  window.EJS_emulator?.gameManager;
+
+
+                if (
+                  !gameManager ||
+                  typeof gameManager.loadState !==
+                    'function'
+                ) {
+
+                  attempts++;
+
+
+                  if (attempts >= 40) {
+                    clearInterval(applyInterval);
+                  }
+
+
+                  return;
+
+                }
+
+
+                try {
+
+                  gameManager.loadState(
+                    window.__pendingSavedStateBytes
+                  );
+
+
+                  window.__pendingSavedStateBytes =
+                    null;
+
+
+                  clearInterval(applyInterval);
+
+
+                  console.log(
+                    'Applied saved game state to emulator'
+                  );
+
+                } catch (err) {
+
+                  attempts++;
+
+
+                  if (attempts >= 40) {
+                    clearInterval(applyInterval);
+
+
+                    console.warn(
+                      'Could not apply saved game state:',
+                      err?.message || err
+                    );
+
+                  }
+
+                }
+
+              },
+              250
+            );
+
+        }
+
         window.EJS_onGameStart =
           () => {
 
@@ -1626,42 +1697,7 @@
               );
 
 
-            /*
-             * Apply saved state.
-             */
-            if (
-              window.__pendingSavedStateBytes &&
-              window.EJS_emulator?.gameManager
-            ) {
-
-              try {
-
-                window.EJS_emulator
-                  .gameManager
-                  .loadState(
-                    window.__pendingSavedStateBytes
-                  );
-
-
-                window.__pendingSavedStateBytes =
-                  null;
-
-
-                console.log(
-                  'Applied saved game state to emulator'
-                );
-
-
-              } catch (err) {
-
-                console.warn(
-                  'Could not apply saved game state:',
-                  err?.message || err
-                );
-
-              }
-
-            }
+            applyPendingSavedState();
 
           };
 
@@ -1733,13 +1769,20 @@
               );
 
 
+              const firestoreGameKey =
+                window.currentGameTitle
+                  .replace(/[\\/\[\]#?]/g, '-')
+                  .replace(/\s+/g, ' ')
+                  .trim();
+
+
               let saveRef =
                 window.firestoreDoc(
                   window.firebaseDb,
                   'saves',
                   window.currentUser.uid,
                   'games',
-                  window.currentGameTitle
+                  firestoreGameKey
                 );
 
 
@@ -1758,7 +1801,32 @@
                *
                * was invalid.
                */
-              if (!saveSnap.exists()) {
+              if (
+                !saveSnap.exists() &&
+                firestoreGameKey !== window.currentGameTitle
+              ) {
+
+                saveRef =
+                  window.firestoreDoc(
+                    window.firebaseDb,
+                    'saves',
+                    window.currentUser.uid,
+                    'games',
+                    window.currentGameTitle
+                  );
+
+
+                saveSnap =
+                  await window.firestoreGetDoc(
+                    saveRef
+                  );
+
+              }
+
+
+              if (
+                !saveSnap.exists()
+              ) {
 
                 saveRef =
                   window.firestoreDoc(
@@ -1806,18 +1874,40 @@
                     index++
                   ) {
 
-                    const chunkRef =
+                    const siblingChunkRef =
                       window.firestoreDoc(
-                        saveRef,
-                        'chunks',
-                        String(index)
+                        window.firebaseDb,
+                        'saves',
+                        window.currentUser.uid,
+                        'games',
+                        `${firestoreGameKey}_chunk_${index}`
                       );
 
 
-                    const chunkSnap =
+                    let chunkSnap =
                       await window.firestoreGetDoc(
-                        chunkRef
+                        siblingChunkRef
                       );
+
+
+                    if (
+                      !chunkSnap.exists()
+                    ) {
+
+                      const nestedChunkRef =
+                        window.firestoreDoc(
+                          saveRef,
+                          'chunks',
+                          String(index)
+                        );
+
+
+                      chunkSnap =
+                        await window.firestoreGetDoc(
+                          nestedChunkRef
+                        );
+
+                    }
 
 
                     if (
@@ -1904,7 +1994,6 @@
               );
 
             }
-
 
           } catch (err) {
 
@@ -2017,8 +2106,6 @@
       }
 
     }
-
-
     /*
      * ============================================================
      * AUTOSAVE

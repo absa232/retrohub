@@ -3,11 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Our Arcade 💕</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90' font-family='Noto Color Emoji'>🎮</text></svg>" />
+  <title>RetroHub Dashboard</title>
   
   <!-- GOOGLE NOTO COLOR EMOJI FONT -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
 
   <style>
@@ -23,7 +25,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif, 'Noto Color Emoji';
+      font-family: 'Poppins';
     }
 
     body {
@@ -197,7 +199,7 @@
 
     #controls-modal,
     #controls-modal * {
-      font-family: 'Poppins', sans-serif;
+      font-family: 'Poppins';
     }
 
     #controls-modal {
@@ -482,7 +484,7 @@
       justify-content: center;
       align-items: center;
       font-size: 2.5rem;
-      font-family: 'Noto Color Emoji', sans-serif;
+      font-family: 'Noto Color Emoji';
       color: var(--subtext);
       overflow: hidden;
       border: none;
@@ -604,7 +606,7 @@
           <rect width="80" height="80" rx="40" fill="#ff8ba7"/>
           <circle cx="40" cy="30" r="14" fill="#fff" opacity="0.9"/>
           <path d="M22 62c4-10 14-16 18-16s14 6 18 16" fill="#fff" opacity="0.9"/>
-          <text x="40" y="44" text-anchor="middle" font-size="20" font-family="Segoe UI, Arial, sans-serif" fill="#1f1e2e" font-weight="700">${initials}</text>
+          <text x="40" y="44" text-anchor="middle" font-size="20" font-family="Poppins" fill="#1f1e2e" font-weight="700">${initials}</text>
         </svg>
       `;
       return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
@@ -1011,10 +1013,10 @@
     ];
 
     const SYSTEM_MAP = {
-      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'picodrive', name: 'SEGA MEGADRIVE', emoji: '🌀', thumbnailSystem: 'Sega - Mega Drive - Genesis' },
-      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes9x', name: 'SUPER NINTENDO', emoji: '🎮', thumbnailSystem: 'Nintendo - Super Nintendo Entertainment System' },
-      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'mgba', name: 'GAME BOY ADVANCE', emoji: '🕹️', thumbnailSystem: 'Nintendo - Game Boy Advance' },
-      'neogeo': { system: 'SNK_-_Neo_Geo', core: 'fbneo', name: 'NEO GEO', emoji: '⚔️', thumbnailSystem: 'SNK - Neo Geo' },
+      'megadrive': { system: 'Sega_-_Mega_Drive_-_Genesis', core: 'genesis_plus_gx', name: 'SEGA MEGADRIVE / GENESIS', emoji: '🌀', thumbnailSystem: 'Sega - Mega Drive - Genesis' },
+      'snes': { system: 'Nintendo_-_Super_Nintendo_Entertainment_System', core: 'snes9x', name: 'SUPER NINTENDO (SNES)', emoji: '🎮', thumbnailSystem: 'Nintendo - Super Nintendo Entertainment System' },
+      'gba': { system: 'Nintendo_-_Game_Boy_Advance', core: 'mgba', name: 'GAME BOY ADVANCE (GBA)', emoji: '🕹️', thumbnailSystem: 'Nintendo - Game Boy Advance' },
+      'neogeo': { system: 'SNK_-_Neo_Geo', core: 'fbneo', name: 'NEO GEO (ARCADE)', emoji: '⚔️', thumbnailSystem: 'SNK - Neo Geo' },
       'n64': { system: 'Nintendo_-_Nintendo_64', core: 'mupen64plus_next', name: 'NINTENDO 64', emoji: '🏰', thumbnailSystem: 'Nintendo - Nintendo 64' }
     };
 
@@ -1180,7 +1182,7 @@
           console.log('Fetched category:', categoryId, 'Games:', games.length);
 
           if (!games.length) {
-            section.querySelector('h2').textContent = categoryData.name || categoryId;
+            section.querySelector('h2').textContent = systemData.name || categoryData.name || categoryId;
             const emptyState = document.createElement('div');
             emptyState.className = 'game-empty';
             emptyState.textContent = 'This category is currently empty.';
@@ -1188,7 +1190,7 @@
             continue;
           }
 
-          section.querySelector('h2').textContent = categoryData.name || categoryId;
+          section.querySelector('h2').textContent = systemData.name || categoryData.name || categoryId;
           const grid = section.querySelector(`#${gridId}`);
           console.log('Grid element found:', !!grid, 'For gridId:', gridId);
 
@@ -1197,7 +1199,7 @@
             const romUrl = game.romUrl;
             const boxartUrl = game.boxartUrl;
             const resolvedSystemKey = systemKey || systemData.system || 'snes';
-            const launchCore = systemData.core || resolvedSystemKey;
+            const launchCore = SYSTEM_MAP[resolvedSystemKey]?.core || systemData.core || resolvedSystemKey;
             const gameIndexKey = `${resolvedSystemKey}_${gameTitle}`;
             const safeRomUrl = romUrl.replace(/'/g, "\\'");
 
@@ -1447,8 +1449,8 @@
             sections: [
               ['🎯 Movement Controls', 'Used for joystick direction, crouching, jumping, and 8-way movement.', '8-Way Joystick', '↑ ↓ ← →'],
               ['⏯️ Selection Controls', 'Used for starting Player 1 gameplay and inserting arcade machine coins.', 'Player 1 Start', 'Enter', 'Insert Coin', 'Shift'],
-              ['⚡ Action Buttons', 'Used for punches, kicks, shoots, and light/medium fighting attacks.', 'Button 1 (Light Attack)', 'Z', 'Button 2 (Medium Attack)', 'X'],
-              ['🛡️ Secondary Action Buttons', 'Used for heavy attacks, special moves, and multi-button combo triggers.', 'Button 3 (Heavy Attack)', 'C', 'Button 4 (Special / Taunt)', 'D']
+              ['⚡ Action Buttons (ABXY)', 'Used for punches, kicks, shoots, and light/medium fighting attacks.', 'Button A (Primary Action)', 'Z', 'Button B (Secondary Action)', 'X', 'Button X (Special Skill)', 'A', 'Button Y (Run / Dash)', 'S'],
+              ['🛡️ Shoulder Controls (L & R)', 'Used for heavy attacks, special moves, and multi-button combo triggers.', 'L Shoulder (Heavy Attack)', 'C', 'R Shoulder (Special / Taunt)', 'D']
             ]
           }
         };
