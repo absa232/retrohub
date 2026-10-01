@@ -1026,7 +1026,7 @@
 
     async function loadCategoriesFromGitHub() {
       try {
-        const indexUrl = 'https://raw.githubusercontent.com/absa232/retrohub/main/categories/index.json';
+        const indexUrl = `categories/index.json?_t=${Date.now()}`;
         const response = await fetch(indexUrl, { cache: 'no-store' });
         if (!response.ok) throw new Error('Failed to load categories index');
         
@@ -1112,7 +1112,7 @@
       const systemKey = inferredSystem || 'snes';
       const categoryJsonFile = categoryInfo.file;
 
-      const categoryUrl = `https://raw.githubusercontent.com/absa232/retrohub/main/categories/${categoryJsonFile}`;
+      const categoryUrl = `categories/${categoryJsonFile}?_t=${Date.now()}`;
       const response = await fetch(categoryUrl, { cache: 'no-store' });
       if (!response.ok) {
         throw new Error(`Failed to load ${categoryId}. Please try again later.`);
