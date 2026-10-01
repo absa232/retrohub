@@ -7,6 +7,12 @@
   "thumbnailSystem": "Nintendo - Super Nintendo Entertainment System",
   "games": [
     {
+      "title": "Super Mario All Stars + Super Mario World",
+      "filename": "Super Mario All-Stars + Super Mario World.zip",
+      "romUrl": "https://archive.org/download/retrohub-roms-snes/Super%20Mario%20All-Stars%20%2B%20Super%20Mario%20World.zip",
+      "boxartUrl": "https://thumbnails.libretro.com/Nintendo%20-%20Super%20Nintendo%20Entertainment%20System/Named_Titles/Super%20Mario%20All-Stars%20%2B%20Super%20Mario%20World%20(USA).png"
+    },
+    {
       "title": "Final Fight 2",
       "filename": "Final Fight 2.zip",
       "romUrl": "https://archive.org/download/retrohub-roms-snes/Final%20Fight%202.zip",
